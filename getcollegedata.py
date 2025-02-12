@@ -13,6 +13,7 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 def read(state, college_email):
+    print(state,' : ',college_email)
     try:
         if '@' not in college_email:
             return({'error': "invalid email format"}, 400)
