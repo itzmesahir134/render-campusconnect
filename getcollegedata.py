@@ -31,7 +31,7 @@ def read(state, college_email):
                 matched_colleges.append(data['Institution Name'])
             
         if not matched_colleges:
-            return {"error":"no colleges found"}, 404
+            return {"colleges":["None Found"]}, 404
         
         return {"colleges": matched_colleges}, 200
         
