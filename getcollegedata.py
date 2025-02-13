@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('key.json'))
+    firebase_admin.initialize_app(credentials.Certificate('etc/secrets/key.json'))
 
 # Get Firestore database reference
 db = firestore.client()
