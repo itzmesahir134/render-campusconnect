@@ -27,11 +27,12 @@ def read(state, college_email):
         return {"colleges": matched_colleges if matched_colleges else ["No colleges found"]}, 200
 
     except Exception as e:
-        return {"error": str(e)}, 500
+        return {"error": [str(e)]}, 404
 
 @app.route("/get-colleges/<state>/<college_email>")
 def get_data(state, college_email):
-    return jsonify(*read(state, college_email))
+    data, status = read(state, college_email)
+    return jsonify(data), status
 
 @app.route("/")
 def home():
