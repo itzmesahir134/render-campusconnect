@@ -36,6 +36,7 @@ def get_data(state, college_email):
 
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
 #http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
+#/create-colleges/sahir@sbmp.ac.in/Anayah@123/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/true?collegeHead_email=smit@sbmp.ac.in&Headpassword=Pass@12
 @app.route("/create-colleges/<college_email>/<password>/<college_name>/<userRef>/<isHead>")
 def create_college(college_email, password, college_name, userRef, isHead):
     print(college_email,password,college_name,userRef,isHead)
@@ -43,6 +44,8 @@ def create_college(college_email, password, college_name, userRef, isHead):
         collegeHead_email = request.args.get('collegeHead_email', 'No extra head provided\n')
         collegeHead_password = request.args.get('Headpassword', 'No extra password provided')
         print(collegeHead_email, collegeHead_password)
+    else:
+        collegeHead_email = college_email, collegeHead_password = password
         
     return jsonify(college_email,password,college_name,userRef,isHead,collegeHead_email, collegeHead_password), 200
 
