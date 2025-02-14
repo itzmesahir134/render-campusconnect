@@ -37,7 +37,7 @@ def get_data(state, college_email):
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
 #http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
 #/create-colleges/sahir@sbmp.ac.in/Anayah@123/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/true?collegeHead_email=smit@sbmp.ac.in&Headpassword=Pass@12
-@app.route("/create-colleges/<college_email>/<password>/<idetity_id>/<college_name>/<userRef>/<isHead>")
+@app.route("/create-colleges/<college_email>/<password>/<identity_id>/<college_name>/<userRef>/<isHead>")
 def create_college(college_email, password, identity_id, college_name, userRef, isHead):
     if isHead == "true":
         collegeHead_email = request.args.get('collegeHead_email', 'No extra head provided\n')
