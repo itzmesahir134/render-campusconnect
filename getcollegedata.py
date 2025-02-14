@@ -1,13 +1,13 @@
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/key.json'))
+    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
 
 # Get Firestore database reference
 db = firestore.client()
@@ -33,6 +33,18 @@ def read(state, college_email):
 def get_data(state, college_email):
     data, status = read(state, college_email)
     return jsonify(data), status
+
+#?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
+#http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
+@app.route("/create-colleges/<college_email>/<password>/<college_name>/<userRef>/<isHead>")
+def create_college(college_email, password, college_name, userRef, isHead):
+    print(college_email,password,college_name,userRef,isHead)
+    if isHead == "True":
+        collegeHead_email = request.args.get('collegeHead_email', 'No extra head provided\n')
+        collegeHead_password = request.args.get('Headpassword', 'No extra password provided')
+        print(collegeHead_email, collegeHead_password)
+        
+    return jsonify(college_email,password,college_name,userRef,isHead,collegeHead_email, collegeHead_password), 200
 
 @app.route("/")
 def home():
