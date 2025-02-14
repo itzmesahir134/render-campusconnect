@@ -45,7 +45,7 @@ def create_college(college_email, password, college_name, userRef, isHead):
         collegeHead_password = request.args.get('Headpassword', 'No extra password provided')
         print(collegeHead_email, collegeHead_password)
     else:
-        collegeHead_email, password = college_email, collegeHead_password 
+        collegeHead_email, collegeHead_password = college_email, password
         
     return jsonify(college_email,password,college_name,userRef,isHead,collegeHead_email, collegeHead_password), 200
 
