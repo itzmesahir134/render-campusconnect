@@ -5,9 +5,20 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
+def createFire(collection_path, data, documentName=False):
+    
+    # Add the document to Firestore
+    if documentName:
+        doc_ref = db.collection(collection_path).document(documentName)
+    else:
+        doc_ref = db.collection(collection_path).document()
+    doc_ref.set(data,merge=True)
+    return doc_ref
+
+
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('/etc/secerts/ServiceAccountKey.json'))
 
 # Get Firestore database reference
 db = firestore.client()
@@ -36,15 +47,58 @@ def get_data(state, college_email):
 
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
 #http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
-#/create-colleges/sahir@sbmp.ac.in/Anayah@123/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/true?collegeHead_email=smit@sbmp.ac.in&Headpassword=Pass@12
+#http://127.0.0.1:5000/create-colleges/sahir@sbmp.ac.in/Anayah@123/57480220035/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/true?collegeHead_email=smit@sbmp.ac.in&Headpassword=Pass@12
 @app.route("/create-colleges/<college_email>/<password>/<identity_id>/<college_name>/<userRef>/<isHead>")
 def create_college(college_email, password, identity_id, college_name, userRef, isHead):
-    if isHead == "true":
-        collegeHead_email = request.args.get('collegeHead_email', 'No extra head provided\n')
-        collegeHead_password = request.args.get('Headpassword', 'No extra password provided')
+    query = (
+    db.collection("Colleges")
+        .where("CollegeDomain", "==", college_email.split("@")[1])
+        .where("CollegeName", "==", college_name)
+        .stream()
+    )
 
+    # Check if any documents exist
+    if any(query):  # Convert stream to list to evaluate results
+        return jsonify({"response": False}), 200
+    
+    
+    if isHead == "true":
+        collegeHead_email = request.args.get('collegeHead_email')
+        collegeHead_password = request.args.get('Headpassword')
+    else:
+        collegeHead_email = college_email
+        collegeHead_password = password
         
-    return jsonify(college_email,password,identity_id,college_name,userRef,isHead,collegeHead_email, collegeHead_password), 200
+    doc_ref = db.collection('Users').document(userRef)
+    doc = doc_ref.get()
+    data = doc.to_dict()
+    
+    #Create College
+    college_ref = createFire('Colleges', {
+        "MainCollegeHead": collegeHead_email,
+        "CollegeDomain": college_email.split('@')[1],
+        "CollegeName": college_name
+        
+        })
+    
+    #Update User Record
+    createFire(f'Users/{userRef}/UserColleges', {
+        "Authority": "MainCollegeHead",
+        "CollegeEmail": college_email,
+        "CollegeDomain": college_email.split('@')[1],
+        "CollegeName": college_name,
+        "isTeacher": False
+        }, college_ref.id)
+    
+    #Create MainCollegeHead Faculty
+    createFire(f'Colleges/{college_ref.id}/Faculty', {
+        "Name": data.get("display_name"),
+        "UserRef": userRef,
+        "UserID": data.get()
+    },identity_id)
+    #u can access the name by doing doc_ref.id
+        
+    return jsonify({"response": True}), 200
 
 @app.route("/")
 def home():
