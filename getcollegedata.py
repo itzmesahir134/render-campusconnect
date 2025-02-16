@@ -94,7 +94,7 @@ def create_college(college_email, password, identity_id, college_name, userRef, 
     createFire(f'Colleges/{college_ref.id}/Faculty', {
         "Name": data.get("display_name"),
         "UserRef": userRef,
-        "UserID": data.get()
+        "UserID": data.get('uid')
     },identity_id)
     #u can access the name by doing doc_ref.id
         
