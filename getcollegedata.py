@@ -3,8 +3,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
 
+#ref google object that is the full path to a document or collection
+#doc_id is the unique number used as the document name
+#user_id is the unique number given to a user 
 app = Flask(__name__)
-
 def createFire(collection_path, data, documentName=False):
     
     # Add the document to Firestore
@@ -47,9 +49,9 @@ def get_data(state, college_email):
 
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
 #http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
-#http://127.0.0.1:5000/create-colleges/sahir@sbmp.ac.in/Anayah@123/57480220035/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/true?collegeHead_email=smit@sbmp.ac.in&Headpassword=Pass@12
-@app.route("/create-colleges/<college_email>/<password>/<identity_id>/<college_name>/<userRef>/<isHead>")
-def create_college(college_email, password, identity_id, college_name, userRef, isHead):
+#http://127.0.0.1:5000/create-colleges/sahir@sbmp.ac.in/Anayah@123/23456789/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/false?collegeHead_email=&Headpassword=
+@app.route("/create-colleges/<college_email>/<password>/<identity_id>/<college_name>/<userDoc_id>/<isHead>")
+def create_college(college_email, password, identity_id, college_name, userDoc_id, isHead):
     query = (
     db.collection("Colleges")
         .where("CollegeDomain", "==", college_email.split("@")[1])
@@ -69,7 +71,7 @@ def create_college(college_email, password, identity_id, college_name, userRef, 
         collegeHead_email = college_email
         collegeHead_password = password
         
-    doc_ref = db.collection('Users').document(userRef)
+    doc_ref = db.collection('Users').document(userDoc_id)
     doc = doc_ref.get()
     data = doc.to_dict()
     
@@ -82,23 +84,46 @@ def create_college(college_email, password, identity_id, college_name, userRef, 
         })
     
     #Update User Record
-    createFire(f'Users/{userRef}/UserColleges', {
+    createFire(f'Users/{userDoc_id}/UserColleges', {
         "Authority": "MainCollegeHead",
         "CollegeEmail": college_email,
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
-        "isTeacher": False
+        "isTeacher": False,
+        "CollegeHeadPassword": collegeHead_password
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
     createFire(f'Colleges/{college_ref.id}/Faculty', {
         "Name": data.get("display_name"),
-        "UserRef": userRef,
+        "userDocID": userDoc_id,
         "UserID": data.get('uid')
-    },identity_id)
+        },identity_id)
     #u can access the name by doing doc_ref.id
         
+    return jsonify({"response": True, "collegeInfo": college_ref.id}), 200
+#http://127.0.0.1:5000/add-course/lFYHVSfVBmTFhWZ9pGHL/Advanced%20Networl%20Administration/ANA2890025/ANA/ZLByMI4dkUa0vBxakiKbxIMCwvD3
+@app.route("/add-course/<collegeDoc_id>/<course_name>/<course_code>/<abbreviation>/<userDoc_id>")
+def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id):
+    query = (
+    db.collection(f'Colleges/{collegeDoc_id}/Courses')
+        .where("CourseCode", "==", course_code)
+        .stream()
+    )
+    
+    if any(query):  # Convert stream to list to evaluate results
+        return jsonify({"response": False}), 200
+    
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['MainCollegeHead','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
+        createFire(f'Colleges/{collegeDoc_id}/Courses',{
+            "CourseName":course_name, 
+            "CourseCode":course_code,
+            "Abbreviation": abbreviation
+            }, course_code)
+    
+    
     return jsonify({"response": True}), 200
+        
 
 @app.route("/")
 def home():
