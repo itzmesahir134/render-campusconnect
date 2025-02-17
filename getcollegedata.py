@@ -116,17 +116,21 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
     #u can access the name by doing doc_ref.id
         
     return jsonify({"response": True, "collegeInfo": college_ref.id}), 200
-#http://127.0.0.1:5000/add-course/JeBFTIAIfBbXV68B7ZVc/Advanced%20Networl%20Administration/ANA2890025/ANA/ZLByMI4dkUa0vBxakiKbxIMCwvD3
-@app.route("/add-course/<collegeDoc_id>/<course_name>/<course_code>/<abbreviation>/<userDoc_id>")
-def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id):
-    query = (
-    db.collection(f'Colleges/{collegeDoc_id}/Courses')
-        .where("CourseCode", "==", course_code)
-        .stream()
-    )
+#http://127.0.0.1:5000/add-course/rZXfLAiNLehOuMMXoHet/Advanced%20Networl%20Administration/ANA2890025/ANA/ZLByMI4dkUa0vBxakiKbxIMCwvD3
+@app.route("/add-course/<collegeDoc_id>/<course_name>/<course_code>/<abbreviation>/<userDoc_id>/<delete_prev>")
+def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id, delete_prev):
     
-    if any(query):  # Convert stream to list to evaluate results
-        return jsonify({"response": False}), 200
+    if delete_prev == "True":
+        db.collection(f'Colleges/{collegeDoc_id}/Course').document(course_code).delete()
+    else:
+        query = (
+        db.collection(f'Colleges/{collegeDoc_id}/Courses')
+            .where("CourseCode", "==", course_code)
+            .stream()
+        )
+    
+        if any(query):  # Convert stream to list to evaluate results
+            return jsonify({"response": False}), 200
     
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['MainCollegeHead','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
         createFire(f'Colleges/{collegeDoc_id}/Courses',{
