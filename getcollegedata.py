@@ -121,7 +121,8 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
 def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id, delete_prev):
     
     if delete_prev == "True":
-        db.collection(f'Colleges/{collegeDoc_id}/Course').document(course_code).delete()
+        old_code = request.args.get('old_code')
+        db.collection(f'Colleges/{collegeDoc_id}/Course').document(old_code).delete()
     else:
         query = (
         db.collection(f'Colleges/{collegeDoc_id}/Courses')
