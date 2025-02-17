@@ -117,12 +117,13 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         
     return jsonify({"response": True, "collegeInfo": college_ref.id}), 200
 #http://127.0.0.1:5000/add-course/rZXfLAiNLehOuMMXoHet/Advanced%20Networl%20Administration/ANA2890025/ANA/ZLByMI4dkUa0vBxakiKbxIMCwvD3
+# http://127.0.0.1:5000/add-course/D3T0fE79QSgZdgDUBZmH/Advanced%20Python/APY893951/APY/ZLByMI4dkUa0vBxakiKbxIMCwvD3/True?old_code=PYT893951
 @app.route("/add-course/<collegeDoc_id>/<course_name>/<course_code>/<abbreviation>/<userDoc_id>/<delete_prev>")
 def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id, delete_prev):
     
     if delete_prev == "True":
         old_code = request.args.get('old_code')
-        db.collection(f'Colleges/{collegeDoc_id}/Course').document(old_code).delete()
+        db.collection(f'Colleges/{collegeDoc_id}/Courses').document(old_code).delete()
     else:
         query = (
         db.collection(f'Colleges/{collegeDoc_id}/Courses')
