@@ -127,7 +127,7 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         
     return jsonify({"response": True, "collegeInfo": college_ref.id}), 200
 #http://127.0.0.1:5000/add-course/rZXfLAiNLehOuMMXoHet/Advanced%20Networl%20Administration/ANA2890025/ANA/ZLByMI4dkUa0vBxakiKbxIMCwvD3
-# http://127.0.0.1:5000/add-course/D3T0fE79QSgZdgDUBZmH/Advanced%20Python/APY893951/APY/ZLByMI4dkUa0vBxakiKbxIMCwvD3/True?old_code=PYT893951
+# http://127.0.0.1:5000/add-course/TmjzpVsNRjNVHwidGrl0/Advanced%20Python/APY893951/APY/ZLByMI4dkUa0vBxakiKbxIMCwvD3/True?old_code=PYT893951
 @app.route("/add-course/<collegeDoc_id>/<course_name>/<course_code>/<abbreviation>/<userDoc_id>/<delete_prev>")
 def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id, delete_prev):
     
@@ -152,7 +152,36 @@ def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id
             }, course_code)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Courses").stream()]}), 200
+     
+# http://127.0.0.1:5000/add-role/TmjzpVsNRjNVHwidGrl0/Head%20Of%20Department/DepartmentHead/false/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False     
+@app.route("/add-role/<collegeDoc_id>/<role_name>/<authority_level>/<is_teacher>/<userDoc_id>/<delete_prev>")
+def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, delete_prev):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['MainCollegeHead','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
+        return jsonify({"response": None}), 404
+    
+    if delete_prev == "True":
+        old_role = request.args.get('old_role')
+        db.collection(f'Colleges/{collegeDoc_id}/Roles').document(old_role).delete()
+    else:
+        query = (
+        db.collection(f'Colleges/{collegeDoc_id}/Roles')
+            .where("RoleName", "==", role_name)
+            .stream()
+        )
+    
+        if any(query):  # Convert stream to list to evaluate results
+            return jsonify({"response": False}), 200
         
+    if is_teacher == "true": is_teacher = True
+    else: is_teacher = False
+    
+    createFire(f'Colleges/{collegeDoc_id}/Roles',{
+        "RoleName":role_name,
+        "Authority":authority_level,
+        "isTeacher": is_teacher
+        }, role_name)
+    
+    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream()]}), 200
 
 @app.route("/")
 def home():
