@@ -35,11 +35,18 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
     else: 
         return jsonify({"response": "No Authorization"})
     
-# @app.route("/read-data/<collection_path>/<document_name>")
+# @app.route("/read-doc/<collection_path>/<document_name>")
 def readFire(collection_path, document_name):
     doc_ref = db.collection(collection_path).document(document_name)
     doc = doc_ref.get()
     return doc.to_dict()
+
+@app.route("/read-field/<collection_path>/<document_name>/<field>")
+def readField(collection_path, document_name, field):
+    #Didn't add Authentication
+    doc_ref = db.collection(collection_path).document(document_name)
+    doc = doc_ref.get()
+    return jsonify({"response": doc.to_dict().get(field)})
 
 def read(state, college_email):
     try:
@@ -91,6 +98,7 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
     
     #Create College
     college_ref = createFire('Colleges', {
+        "Setup": True,
         "MainCollegeHead": collegeHead_email,
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name
@@ -104,14 +112,15 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
         "isTeacher": False,
-        "CollegeHeadPassword": collegeHead_password,
-        "CollegeID": college_ref.id
+        "CollegePassword": collegeHead_password,
+        "CollegeID": college_ref.id,
+        "IdentityID": identity_id
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
     createFire(f'Colleges/{college_ref.id}/Faculty', {
         "Name": data.get("display_name"),
-        "userDocID": userDoc_id,
+        "UserDocID": userDoc_id,
         "UserID": data.get('uid')
         },identity_id)
     #u can access the name by doing doc_ref.id
