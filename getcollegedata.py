@@ -104,7 +104,8 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
         "isTeacher": False,
-        "CollegeHeadPassword": collegeHead_password
+        "CollegeHeadPassword": collegeHead_password,
+        "CollegeID": college_ref.id
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
