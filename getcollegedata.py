@@ -213,7 +213,7 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         "UserDocID": "Not Logged In",
         "UserID": "Not Logged In",
         "IdentityID": identity_id,
-        "Roles": role_name
+        "Roles": role_name.split(",")
         }, identity_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
