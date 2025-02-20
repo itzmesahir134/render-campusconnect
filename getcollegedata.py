@@ -9,6 +9,7 @@ import io
 #doc_id is the unique number used as the document name
 #user_id is the unique number given to a user 
 
+#need to update Faculty to have their USER REFERENCE when they log in
 #figure out how to change the 'MainCollegeHead' to 'CollegeHead' in 30 days timer
 app = Flask(__name__)
 
@@ -116,18 +117,22 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         "isTeacher": False,
         "CollegePassword": collegeHead_password,
         "CollegeID": college_ref.id,
-        "IdentityID": identity_id
+        "IdentityID": identity_id,
+        "Roles": ["MainCollegeHead"]
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
     createFire(f'Colleges/{college_ref.id}/Faculty', {
         "Name": data.get("display_name"),
         "UserDocID": userDoc_id,
-        "UserID": data.get('uid')
+        "UserID": data.get('uid'),
+        "IdentityID": identity_id,
+        "Roles": ["MainCollegeHead"]
         },identity_id)
     #u can access the name by doing doc_ref.id
         
     return jsonify({"response": True, "collegeInfo": college_ref.id}), 200
+
 #http://127.0.0.1:5000/add-course/rZXfLAiNLehOuMMXoHet/Advanced%20Networl%20Administration/ANA2890025/ANA/ZLByMI4dkUa0vBxakiKbxIMCwvD3
 # http://127.0.0.1:5000/add-course/TmjzpVsNRjNVHwidGrl0/Advanced%20Python/APY893951/APY/ZLByMI4dkUa0vBxakiKbxIMCwvD3/True?old_code=PYT893951
 @app.route("/add-course/<collegeDoc_id>/<course_name>/<course_code>/<abbreviation>/<userDoc_id>/<delete_prev>")
@@ -184,8 +189,35 @@ def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, 
         }, role_name)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream()]}), 200
-
-
+# http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Sahir%20Shaikh/oewhfniube@gmail.com/576364567/Pass@123/poggers/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
+@app.route("/add-faculty/<collegeDoc_id>/<full_name>/<college_email>/<identity_id>/<default_password>/<role_name>/<userDoc_id>/<delete_prev>")
+def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_password, role_name, userDoc_id, delete_prev):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['MainCollegeHead','CollegeHead','CollegeAdmin']:
+        return jsonify({"response": None}), 404
+    
+    if delete_prev == "True":
+        old_id = request.args.get('old_id')
+        db.collection(f'Colleges/{collegeDoc_id}/Faculty').document(old_id).delete()
+    else:
+        query = (
+        db.collection(f'Colleges/{collegeDoc_id}/Faculty')
+            .where("IdentityID", "==", identity_id)
+            .stream()
+        )
+    
+        if any(query):  # Convert stream to list to evaluate results
+            return jsonify({"response": False}), 200
+            
+    createFire(f'Colleges/{collegeDoc_id}/Faculty',{
+        "Name": full_name,
+        "UserDocID": "Not Logged In",
+        "UserID": "Not Logged In",
+        "IdentityID": identity_id,
+        "Roles": role_name
+        }, identity_id)
+    
+    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
+    
 
 
 
@@ -214,8 +246,8 @@ def upload_csv():
         return jsonify({"error": str(e)}), 500
     
 
-@app.route('/upload/excel', methods=['POST'])
-def upload_excel():
+@app.route('/upload/excel/<collegeDoc_id>/<userDoc_id>', methods=['POST'])
+def upload_excel(collegeDoc_id, userDoc_id):
     # Check if file exists in the request
     if 'file' not in request.files:
         return jsonify({'response': 'No file part'}), 400
@@ -232,6 +264,8 @@ def upload_excel():
 
         # Convert DataFrame to JSON
         data = df.to_dict(orient="records")
+        for i in data:
+            print(i)
 
         return jsonify({"response": True, "data": data})
 
