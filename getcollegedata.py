@@ -2,6 +2,8 @@ import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
+import pandas as pd
+import io
 
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
@@ -183,6 +185,62 @@ def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, 
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream()]}), 200
 
+
+
+
+
+@app.route("/upload/CSV", methods=['POST'])
+def upload_csv():
+    # Check if the file is in the request
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    
+    # Ensure a file is selected
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    try:
+        # Read the CSV file into a Pandas DataFrame
+        df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")))
+
+        # Convert DataFrame to JSON
+        data = df.to_dict(orient="records")
+        
+        return jsonify({"success": True, "data": data})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/upload/excel', methods=['POST'])
+def upload_excel():
+    # Check if file exists in the request
+    if 'file' not in request.files:
+        return jsonify({'response': 'No file part'}), 400
+    
+    file = request.files['file']
+    
+    # Ensure the file is selected
+    if file.filename == '':
+        return jsonify({'response': 'No selected file'}), 400
+
+    try:
+        # Read Excel file into a Pandas DataFrame
+        df = pd.read_excel(io.BytesIO(file.read()), engine="openpyxl")
+
+        # Convert DataFrame to JSON
+        data = df.to_dict(orient="records")
+
+        return jsonify({"response": True, "data": data})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+    
+
 @app.route("/")
 def home():
     return "Welcome to College Finder API!"
@@ -190,3 +248,5 @@ def home():
 if __name__ == "__main__":
     PORT = int(os.getenv("PORT", 5000))  # Use dynamic port for cloud hosting
     app.run(debug=True, host="0.0.0.0", port=PORT)
+
+#pip install flask pandas openpyxl
