@@ -190,6 +190,7 @@ def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, 
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream()]}), 200
 # http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Sahir%20Shaikh/oewhfniube@gmail.com/576364567/Pass@123/poggers/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
+# http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Vivek/helo1vivek@gmail.com/4654w5/Pass@123/Head%20Of%20Department,InstructorZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-faculty/<collegeDoc_id>/<full_name>/<college_email>/<identity_id>/<default_password>/<role_name>/<userDoc_id>/<delete_prev>")
 def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_password, role_name, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['MainCollegeHead','CollegeHead','CollegeAdmin']:
@@ -207,13 +208,14 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
     
         if any(query):  # Convert stream to list to evaluate results
             return jsonify({"response": False}), 200
-            
+    
+    if "," in role_name: role_name = role_name.split(",")
     createFire(f'Colleges/{collegeDoc_id}/Faculty',{
         "Name": full_name,
         "UserDocID": "Not Logged In",
         "UserID": "Not Logged In",
         "IdentityID": identity_id,
-        "Roles": role_name.split(",")
+        "Roles": role_name
         }, identity_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
