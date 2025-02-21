@@ -224,8 +224,16 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         }, identity_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
-    
-
+@app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
+def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['MainCollegeHead','CollegeHead','CollegeAdmin']:
+            return jsonify({"response": None}), 404
+        
+    createFire(f'Colleges/{collegeDoc_id}/Faculty',{
+        "LoggedIn": False,
+        "DefaultPassword": default_password
+        }, identity_id)
+    return jsonify({"response": True}), 200
 
 
 @app.route("/upload/CSV", methods=['POST'])
@@ -265,19 +273,32 @@ def upload_excel(collegeDoc_id, userDoc_id):
     if file.filename == '':
         return jsonify({'response': 'No selected file'}), 400
 
-    try:
-        # Read Excel file into a Pandas DataFrame
-        df = pd.read_excel(io.BytesIO(file.read()), engine="openpyxl")
+    # Read Excel file into a Pandas DataFrame
+    df = pd.read_excel(io.BytesIO(file.read()), engine="openpyxl")
 
-        # Convert DataFrame to JSON
-        data = df.to_dict(orient="records")
-        for i in data:
-            print(i)
+    # Convert DataFrame to JSON
+    data = df.to_dict(orient="records")
+    count = 0
+    for facultyDoc in data:
+        testRoles  = True
+        
+        roles = facultyDoc.get('Roles (No space after commas)')
+        if "," in roles: roles = roles.split(",")
+        else: roles = [roles]
+        for role in roles:
+            doc = db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get()
+            if doc.exists:
+                continue
+            else: 
+                count -= 1
+                testRoles = False
+                break
+        if testRoles: add_faculty(collegeDoc_id, str(facultyDoc.get('Full Name')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Identity ID')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles (No space after commas)')), str(userDoc_id), False)
+        count += 1
+    
 
-        return jsonify({"response": True, "data": data})
+    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()], "added": str(count)})
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
     
