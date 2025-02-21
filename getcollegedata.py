@@ -211,6 +211,7 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
             return jsonify({"response": False}), 200
     
     if "," in role_name: role_name = role_name.split(",")
+    else: role_name = [role_name]
     createFire(f'Colleges/{collegeDoc_id}/Faculty',{
         "LoggedIn": False,
         "Name": full_name,
