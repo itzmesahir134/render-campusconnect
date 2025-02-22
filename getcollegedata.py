@@ -38,6 +38,23 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
     else: 
         return jsonify({"response": "No Authorization"})
     
+@app.route("/find-faculty-Authority/<authority>/<collegeDoc_id>")
+def find_faculty_Authority(authority, collegeDoc_id):
+    faculty = []
+    docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
+    for doc in [doc.to_dict() for doc in docs]:
+        print('Faculty: ', doc.get('Name'))
+        for role in doc.get('Roles'):
+            print(role)
+            if db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get().to_dict().get('Authority') == authority:
+                faculty.append(doc.get('Name'))
+    
+    if faculty != []:
+        return faculty
+    else:
+        return {"Response": "Assign {authority} Authority"}
+
+    
 # @app.route("/read-doc/<collection_path>/<document_name>")
 def readFire(collection_path, document_name):
     doc_ref = db.collection(collection_path).document(document_name)
@@ -130,6 +147,12 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         "Roles": ["MainCollegeHead"],
         "CollegeEmail": college_email
         },identity_id)
+    
+    createFire(f'Colleges/{college_ref.id}/Roles', {
+        "Authority": "MainCollegeHead",
+        "RoleName": "MainCollegeHead",
+        "isTeacher": False
+    },"MainCollegeHead")
     #u can access the name by doing doc_ref.id
         
     return jsonify({"response": True, "collegeInfo": college_ref.id}), 200
