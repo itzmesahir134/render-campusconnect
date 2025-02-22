@@ -38,7 +38,7 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
     else: 
         return jsonify({"response": "No Authorization"})
     
-@app.route("/find-faculty-Authority/<authority>/<collegeDoc_id>")
+@app.route("/find-faculty-authority/<authority>/<collegeDoc_id>")
 def find_faculty_Authority(authority, collegeDoc_id):
     faculty = []
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
