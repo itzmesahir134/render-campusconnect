@@ -190,6 +190,7 @@ def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, 
         }, role_name)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream()]}), 200
+
 # http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Sahir%20Shaikh/oewhfniube@gmail.com/576364567/Pass@123/poggers/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 # http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Vivek/helo1vivek@gmail.com/4654w5/Pass@123/Head%20Of%20Department,Instructor/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-faculty/<collegeDoc_id>/<full_name>/<college_email>/<identity_id>/<default_password>/<role_name>/<userDoc_id>/<delete_prev>")
@@ -224,6 +225,39 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         }, identity_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
+
+#List of Programs = ['Certificate Program', 'Diploma Program', 'Associate Degree', 'Bachelor’s Degree', 'Post-Baccalaureate/Graduate Certificate', 'Master’s Degree', 'Doctoral Programs (Ph.D. or Professional Doctorates)', 'Post-Doctoral Studies']
+# http://127.0.0.1:5000/add-department/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
+@app.route("/add-department/<collegeDoc_id>/<department_name>/<abbreviation>/<field_of_study>/<department_head>/<study_level>/<format>/<userDoc_id>/<delete_prev>")
+def add_department(collegeDoc_id, department_name, abbreviation, field_of_study, department_head, study_level, format, userDoc_id, delete_prev):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['MainCollegeHead','CollegeHead','CollegeAdmin']:
+        return jsonify({"response": None}), 404
+    
+    if delete_prev == "True":
+        old_department_name = request.args.get('old_department_name')
+        db.collection(f'Colleges/{collegeDoc_id}/Departments').document(old_department_name).delete()
+    else:
+        query = (
+        db.collection(f'Colleges/{collegeDoc_id}/Departments')
+            .where("DepartmentName", "==", department_name)
+            .stream()
+        )
+    
+        if any(query):  # Convert stream to list to evaluate results
+            return jsonify({"response": False}), 200
+    
+    createFire(f'Colleges/{collegeDoc_id}/Departments',{
+        "DepartmentName": department_name,
+        "Abbreviation": abbreviation,
+        "FieldOfStudy": field_of_study,
+        "DepartmentHead": department_head,
+        "Format": format,
+        "StudyLevel": study_level,
+        
+        }, department_name)
+    
+    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()]}), 200
+
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['MainCollegeHead','CollegeHead','CollegeAdmin']:
