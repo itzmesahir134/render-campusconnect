@@ -30,11 +30,12 @@ def createFire(collection_path, data, documentName=False):
     doc_ref.set(data,merge=True)
     return doc_ref
 
+# http://127.0.0.1:5000/read-college-collection/Departments,Computer%20Science,Classes/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3
 @app.route("/read-college-collection/<collection_name>/<collegeDoc_id>/<userDoc_id>")
 def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
-        if '&#&' in collection_name:
-            path = collection_name.split('&#&')
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','College Head','College Admin','Department Head','Department Admin']:
+        if ',' in collection_name:
+            path = collection_name.split(',')
             way = ""
             for i in path: way += i
             docs = db.collection(f"Colleges/{collegeDoc_id}/{way}").stream()
