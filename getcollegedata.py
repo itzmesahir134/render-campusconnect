@@ -33,8 +33,15 @@ def createFire(collection_path, data, documentName=False):
 @app.route("/read-college-collection/<collection_name>/<collegeDoc_id>/<userDoc_id>")
 def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
-        docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
-        return [doc.to_dict() for doc in docs]
+        if '&#&' in collection_name:
+            path = collection_name.split('&#&')
+            way = ""
+            for i in path: way += i
+            docs = db.collection(f"Colleges/{collegeDoc_id}/{way}").stream()
+            return [doc.to_dict() for doc in docs]
+        else:
+            docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
+            return [doc.to_dict() for doc in docs]
     else: 
         return jsonify({"response": "No Authorization"})
     
@@ -50,9 +57,9 @@ def find_faculty_Authority(authority, collegeDoc_id):
                 faculty.append(doc.get('Name'))
     
     if faculty != []:
-        return faculty
+        return {"Response": True, "data": faculty}
     else:
-        return {"Response": "Assign {authority} Authority"}
+        return {"Response": f"Assign {authority} Authority"}
 
     
 # @app.route("/read-doc/<collection_path>/<document_name>")
@@ -280,6 +287,40 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
         }, department_name)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()]}), 200
+
+# http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
+@app.route("/add-class/<collegeDoc_id>/<class_name>/<class_coordinator>/<courses>/<year_or_semester>/<userDoc_id>/<delete_prev>")
+def add_class(collegeDoc_id, department_name, class_name, class_coordinator, courses, year_or_semester, userDoc_id, delete_prev):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin']:
+        return jsonify({"response": None}), 404
+    
+    if delete_prev == "True":
+        old_class_name = request.args.get('old_class_name')
+        db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes').document(old_class_name).delete()
+    else:
+        query = (
+        db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes')
+            .where("ClassName", "==", class_name)
+            .stream()
+        )
+    
+        if any(query):  # Convert stream to list to evaluate results
+            return jsonify({"response": False}), 200
+        
+    if ',' in courses: courses = courses.split(',')
+    else: courses = [courses]
+    
+    createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes',{
+        "DepartmentName": department_name,
+        "ClassName": class_name,
+        "ClassCoordinator": class_coordinator,
+        "Courses": courses,
+        "Format": format,
+        "Year/Semester": year_or_semester,
+        
+        }, class_name)
+    
+    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()]}), 200
 
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
