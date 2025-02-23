@@ -57,9 +57,9 @@ def find_faculty_Authority(authority, collegeDoc_id):
                 faculty.append(doc.get('Name'))
     
     if faculty != []:
-        return {"Response": True, "data": faculty}
+        return {"response": True, "data": faculty}
     else:
-        return {"Response": f"Assign {authority} Authority"}
+        return {"response": f"Assign {authority} Authority"}
 
     
 # @app.route("/read-doc/<collection_path>/<document_name>")
