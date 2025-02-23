@@ -51,9 +51,7 @@ def find_faculty_Authority(authority, collegeDoc_id):
     faculty = []
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
     for doc in [doc.to_dict() for doc in docs]:
-        print('Faculty: ', doc.get('Name'))
         for role in doc.get('Roles'):
-            print(role)
             if db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get().to_dict().get('Authority') == authority:
                 faculty.append(doc.get('Name'))
     
