@@ -8,6 +8,7 @@ import io
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
 #user_id is the unique number given to a user 
+#pressing space when defining a document/collection name can lead to issues as it dosen't appear on the document but does if mentioned in the document i.e 'DepartmentName'
 
 #need to update Faculty to have their USER REFERENCE when they log in
 #figure out how to change the 'MainCollegeHead' to 'CollegeHead' in 30 days timer
@@ -27,7 +28,7 @@ def createFire(collection_path, data, documentName=False):
         doc_ref = db.collection(collection_path).document(documentName)
     else:
         doc_ref = db.collection(collection_path).document()
-    doc_ref.set(data,merge=True)
+    doc_ref.set(data, merge=True)
     return doc_ref
 
 # http://127.0.0.1:5000/read-college-collection/Departments,Computer%20Science,Classes/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3
@@ -51,7 +52,9 @@ def find_faculty_Authority(authority, collegeDoc_id):
     faculty = []
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
     for doc in [doc.to_dict() for doc in docs]:
+        print('Faculty: ', doc.get('Name'))
         for role in doc.get('Roles'):
+            print(role)
             if db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get().to_dict().get('Authority') == authority:
                 faculty.append(doc.get('Name'))
     
@@ -289,7 +292,7 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
 
 # http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator>/<courses>/<year_or_semester>/<userDoc_id>/<delete_prev>")
-def add_class(collegeDoc_id, department_name, class_name, class_coordinator, courses, year_or_semester, userDoc_id, delete_prev):
+def add_class(collegeDoc_id, department_name, class_name, class_coordinator, courses, format, year_or_semester, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin']:
         return jsonify({"response": None}), 404
     
