@@ -37,8 +37,7 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','College Head','College Admin','Department Head','Department Admin']:
         if ',' in collection_name:
             path = collection_name.split(',')
-            way = ""
-            for i in path: way += i
+            way = '/'.join(path)
             docs = db.collection(f"Colleges/{collegeDoc_id}/{way}").stream()
             return [doc.to_dict() for doc in docs]
         else:
