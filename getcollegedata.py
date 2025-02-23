@@ -59,7 +59,7 @@ def find_faculty_Authority(authority, collegeDoc_id):
     if faculty != []:
         return {"response": True, "data": faculty}
     else:
-        return {"response": f"Assign {authority} Authority"}
+        return {"response": False, "data": f"Assign {authority} Authority"}
 
     
 # @app.route("/read-doc/<collection_path>/<document_name>")
