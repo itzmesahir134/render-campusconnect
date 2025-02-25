@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('ServiceAccountKey.json'))
 
 # Get Firestore database reference
 db = firestore.client()
@@ -183,7 +183,7 @@ def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id
         if any(query):  # Convert stream to list to evaluate results
             return jsonify({"response": False}), 200
     
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','College Head','College Admin','Department Head','Department Admin']:
         createFire(f'Colleges/{collegeDoc_id}/Courses',{
             "CourseName":course_name,
             "CourseCode":course_code,
@@ -195,7 +195,7 @@ def add_course(collegeDoc_id, course_name, course_code, abbreviation, userDoc_id
 # http://127.0.0.1:5000/add-role/TmjzpVsNRjNVHwidGrl0/Head%20Of%20Department/DepartmentHead/false/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False     
 @app.route("/add-role/<collegeDoc_id>/<role_name>/<authority_level>/<is_teacher>/<userDoc_id>/<delete_prev>")
 def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, delete_prev):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin','DepartmentHead','DepartmentAdmin']:
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin','Department Head','Department Admin']:
         return jsonify({"response": None}), 404
     
     if delete_prev == "True":
@@ -226,7 +226,7 @@ def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, 
 # http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Vivek/helo1vivek@gmail.com/4654w5/Pass@123/Head%20Of%20Department,Instructor/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-faculty/<collegeDoc_id>/<full_name>/<college_email>/<identity_id>/<default_password>/<role_name>/<userDoc_id>/<delete_prev>")
 def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_password, role_name, userDoc_id, delete_prev):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin']:
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin','Department Head']:
         return jsonify({"response": None}), 404
     
     if delete_prev == "True":
@@ -261,7 +261,7 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
 # http://127.0.0.1:5000/add-department/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-department/<collegeDoc_id>/<department_name>/<abbreviation>/<field_of_study>/<department_head>/<study_level>/<format>/<userDoc_id>/<delete_prev>")
 def add_department(collegeDoc_id, department_name, abbreviation, field_of_study, department_head, study_level, format, userDoc_id, delete_prev):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin']:
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
         return jsonify({"response": None}), 404
     
     if delete_prev == "True":
@@ -292,7 +292,7 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
 # http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator>/<courses>/<format>/<year_or_semester>/<userDoc_id>/<delete_prev>")
 def add_class(collegeDoc_id, department_name, class_name, class_coordinator, courses, format, year_or_semester, userDoc_id, delete_prev):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','CollegeHead','CollegeAdmin']:
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin', 'Department Head', 'Department Admin']:
         return jsonify({"response": None}), 404
     
     if delete_prev == "True":
@@ -322,6 +322,44 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator, cou
         }, class_name)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()]}), 200
+
+
+
+@app.route("/add-student/<collegeDoc_id>/<department_name>/<class_name>/<student_name>/<student_id>/<college_email>/<default_password>/<student_roles>/<from_date>/<to_date>/<parent_email>/<userDoc_id>/<delete_prev>")
+def add_student(collegeDoc_id, department_name, class_name, student_name, student_id, college_email, default_password, student_roles, from_date, to_date, parent_email, userDoc_id, delete_prev):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin','Department Head', 'Department Admin','Class Coordinator']:
+        return jsonify({"response": None}), 404
+    
+    if delete_prev == "True":
+        old_student_id = request.args.get('old_student_id')
+        db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students').document(old_student_id).delete()
+    else:
+        query = (
+        db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students')
+            .where("IdentityID", "==", student_id)
+            .stream()
+        )
+    
+        if any(query):  # Convert stream to list to evaluate results
+            return jsonify({"response": False}), 200
+    
+    if ',' in student_roles: student_roles.split(',')
+    else: student_roles = [student_roles]
+    createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students',{
+        "IdentityID": student_id,
+        "DepartmentName": department_name,
+        "ClassName": class_name,
+        "StudentName": student_name,
+        "CollegeEmail": college_email,
+        "DefultPassword": default_password,
+        "Roles": student_roles,
+        "FromDate": from_date,
+        "ToDate": to_date,
+        "ParentEmail": parent_email
+        
+        }, student_id)
+    
+    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
 
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
