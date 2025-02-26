@@ -357,8 +357,8 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "FromDate": from_date,
         "ToDate": to_date,
         "PhoneNo": phone_no,
-        "ParentEmail": parent_email
-        "Password": "Not Logged In"
+        "ParentEmail": parent_email,
+        "Password": "Not Logged In",
         "UserID": "Not Logged In"
         
         }, student_id)
