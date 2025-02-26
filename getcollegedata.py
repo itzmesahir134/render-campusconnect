@@ -372,6 +372,7 @@ def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id)
         
     createFire(f'Colleges/{collegeDoc_id}/Faculty',{
         "LoggedIn": False,
+        "DefaultPassword": default_password,
         "Password": default_password
         }, identity_id)
     return jsonify({"response": True}), 200
@@ -383,6 +384,7 @@ def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, defaul
         
     createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students',{
         "LoggedIn": False,
+        "DefaultPassword": default_password,
         "Password": default_password
         }, identity_id)
     return jsonify({"response": True}), 200
@@ -413,8 +415,8 @@ def upload_csv():
         return jsonify({"error": str(e)}), 500
     
 
-@app.route('/upload/excel/<collegeDoc_id>/<userDoc_id>', methods=['POST'])
-def upload_excel(collegeDoc_id, userDoc_id):
+@app.route('/upload/excel/<collegeDoc_id>/<upload_function>/<userDoc_id>', methods=['POST'])
+def upload_excel(collegeDoc_id, upload_function, userDoc_id):
     # Check if file exists in the request
     if 'file' not in request.files:
         return jsonify({'response': 'No file part'}), 400
@@ -431,22 +433,44 @@ def upload_excel(collegeDoc_id, userDoc_id):
     # Convert DataFrame to JSON
     data = df.to_dict(orient="records")
     count = 0
-    for facultyDoc in data:
-        testRoles  = True
-        
-        roles = facultyDoc.get('Roles (No space after commas)')
-        if "," in roles: roles = roles.split(",")
-        else: roles = [roles]
-        for role in roles:
-            doc = db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get()
-            if doc.exists:
-                continue
-            else: 
-                count -= 1
-                testRoles = False
-                break
-        if testRoles: add_faculty(collegeDoc_id, str(facultyDoc.get('Full Name')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Identity ID')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles (No space after commas)')), str(userDoc_id), False)
-        count += 1
+    if ',' in upload_function: upload_function = upload_function.split(',')
+    else: upload_function = [upload_function] 
+    if upload_function[0] == "AddFaculty":
+        for facultyDoc in data:
+            testRoles  = True
+            
+            roles = facultyDoc.get('Roles (No space after commas)')
+            for i, v in enumerate(roles): roles[i] = v.stript()
+            if "," in roles: roles = roles.split(",")
+            else: roles = [roles]
+            for role in roles:
+                doc = db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get()
+                if doc.exists:
+                    continue
+                else: 
+                    count -= 1
+                    testRoles = False
+                    break
+            if testRoles: add_faculty(collegeDoc_id, str(facultyDoc.get('Full Name')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Identity ID')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles (No space after commas)')), str(userDoc_id), False)
+            count += 1
+            
+    elif upload_function[0] == "AddStudents":
+        for studentDoc in data:
+            testRoles  = True
+            
+            roles = studentDoc.get('Roles')
+            if "," in roles: roles = roles = roles.split(",")
+            else: [role]
+            for i, v in enumerate(roles): roles[i] = v.stript()
+            for role in roles:
+                if role in ['Student', 'Class Representative', 'Class Vice-Representative', 'Class Ladies-Representative']:
+                    continue
+                else:
+                    count -= 1
+                    testRoles = False
+                    break
+                                                    # collegeDoc_id, department_name, class_name, student_name, student_id, college_email, default_password, student_roles, from_date, to_date, phone_no, parent_email, userDoc_id, delete_prev
+        if testRoles: add_student(collegeDoc_id, upload_function[1], upload_function[2], str(facultyDoc.get('Student Name')), str(facultyDoc.get('Student ID')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles')), str(facultyDoc.get('From Date')), str(facultyDoc.get('To Date')), str(facultyDoc.get('Phone No')), str(facultyDoc.get('Parent Email')), userDoc_id, False)
     
 
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()], "added": str(count)})
