@@ -462,7 +462,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
             
             roles = studentDoc.get('Roles')
             if "," in roles: roles = roles = roles.split(",")
-            else: [roles]
+            else: roles = [roles]
             for i, v in enumerate(roles): roles[i] = v.stript()
             for role in roles:
                 if role in ['Student', 'Class Representative', 'Class Vice-Representative', 'Class Ladies-Representative']:
