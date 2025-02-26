@@ -434,7 +434,9 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
     data = df.to_dict(orient="records")
     count = 0
     if ',' in upload_function: upload_function = upload_function.split(',')
-    else: upload_function = [upload_function] 
+    else: upload_function = [upload_function]
+    print(upload_function)
+    
     if upload_function[0] == "AddFaculty":
         for facultyDoc in data:
             testRoles  = True
@@ -454,7 +456,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
             if testRoles: add_faculty(collegeDoc_id, str(facultyDoc.get('Full Name')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Identity ID')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles (No space after commas)')), str(userDoc_id), False)
             count += 1
         return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()], "added": str(count)})
-            
+    
     elif upload_function[0] == "AddStudents":
         for studentDoc in data:
             testRoles  = True
@@ -463,7 +465,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
             roles = studentDoc.get('Roles')
             if "," in roles: roles = roles = roles.split(",")
             else: roles = [roles]
-            for i, v in enumerate(roles): roles[i] = v.strip()
+            for i, v in enumerate(roles): roles[i] = v.stript()
             for role in roles:
                 if role in ['Student', 'Class Representative', 'Class Vice-Representative', 'Class Ladies-Representative']:
                     print(role)
@@ -473,7 +475,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
                     testRoles = False
                     break
                                                     # collegeDoc_id, department_name, class_name, student_name, student_id, college_email, default_password, student_roles, from_date, to_date, phone_no, parent_email, userDoc_id, delete_prev
-            if testRoles: add_student(collegeDoc_id, upload_function[1], upload_function[2], str(facultyDoc.get('Student Name')), str(facultyDoc.get('Student ID')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles')), str(facultyDoc.get('From Date')), str(facultyDoc.get('To Date')), str(facultyDoc.get('Phone No')), str(facultyDoc.get('Parent Email')), userDoc_id, False)
+            if testRoles: add_student(collegeDoc_id, upload_function[1], upload_function[2], str(studentDoc.get('Student Name')), str(studentDoc.get('Student ID')), str(studentDoc.get('College Email')), str(studentDoc.get('Default Password')), str(studentDoc.get('Roles')), str(studentDoc.get('From Date')), str(studentDoc.get('To Date')), str(studentDoc.get('Phone No')), str(studentDoc.get('Parent Email')), userDoc_id, False)
             count += 1
             print(count)
         return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{upload_function[1]}/Classes/{upload_function[2]}/Students").stream()], "added": str(count)})
