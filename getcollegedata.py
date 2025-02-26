@@ -458,6 +458,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
     elif upload_function[0] == "AddStudents":
         for studentDoc in data:
             testRoles  = True
+            print('ADD STUDENT FUNCTION')
             
             roles = studentDoc.get('Roles')
             if "," in roles: roles = roles = roles.split(",")
@@ -465,6 +466,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
             for i, v in enumerate(roles): roles[i] = v.stript()
             for role in roles:
                 if role in ['Student', 'Class Representative', 'Class Vice-Representative', 'Class Ladies-Representative']:
+                    print(role)
                     continue
                 else:
                     count -= 1
@@ -473,6 +475,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
                                                     # collegeDoc_id, department_name, class_name, student_name, student_id, college_email, default_password, student_roles, from_date, to_date, phone_no, parent_email, userDoc_id, delete_prev
             if testRoles: add_student(collegeDoc_id, upload_function[1], upload_function[2], str(facultyDoc.get('Student Name')), str(facultyDoc.get('Student ID')), str(facultyDoc.get('College Email')), str(facultyDoc.get('Default Password')), str(facultyDoc.get('Roles')), str(facultyDoc.get('From Date')), str(facultyDoc.get('To Date')), str(facultyDoc.get('Phone No')), str(facultyDoc.get('Parent Email')), userDoc_id, False)
             count += 1
+            print(count)
         return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{upload_function[1]}/Classes/{upload_function[2]}/Students").stream()], "added": str(count)})
 
     return jsonify({"response": "Add Proper Function Name"})
