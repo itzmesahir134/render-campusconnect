@@ -377,7 +377,7 @@ def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id)
     return jsonify({"response": True}), 200
 
 @app.route("/reset-default-student/<collegeDoc_id>/<department_name>/<class_name>/<default_password>/<identity_id>/<userDoc_id>")
-def resetToDefaultPass(collegeDoc_id, department_name, class_name, default_password, identity_id, userDoc_id):
+def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, default_password, identity_id, userDoc_id):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
             return jsonify({"response": None}), 404
         
