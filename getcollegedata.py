@@ -324,7 +324,7 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator, cou
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()]}), 200
 
 
-
+# /add-student/bjqenSCzXVbupX1E3OYs/Information%20Technology/A/TEster/12345678/hah@gmail.com/Pass@123/Class%20Representative/01,01,2501/01,01,2501/436357897/sadasd@gmail.com/ZLByMI4dkUa0vBxakiKbxIMCwvD3/True?old_student_id=57480220035
 @app.route("/add-student/<collegeDoc_id>/<department_name>/<class_name>/<student_name>/<student_id>/<college_email>/<default_password>/<student_roles>/<from_date>/<to_date>/<phone_no>/<parent_email>/<userDoc_id>/<delete_prev>")
 def add_student(collegeDoc_id, department_name, class_name, student_name, student_id, college_email, default_password, student_roles, from_date, to_date, phone_no, parent_email, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin','Department Head', 'Department Admin','Class Coordinator']:
@@ -343,9 +343,10 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         if any(query):  # Convert stream to list to evaluate results
             return jsonify({"response": False}), 200
     
-    if ',' in student_roles: student_roles.split(',')
+    if ',' in student_roles: student_roles = student_roles.split(',')
     else: student_roles = [student_roles]
     createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students',{
+        "LoggedIn": False,
         "IdentityID": student_id,
         "DepartmentName": department_name,
         "ClassName": class_name,
@@ -357,6 +358,8 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "ToDate": to_date,
         "PhoneNo": phone_no,
         "ParentEmail": parent_email
+        "Password": "Not Logged In"
+        "UserID": "Not Logged In"
         
         }, student_id)
     
@@ -364,12 +367,23 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
 
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin','Department Head', 'Department Admin','Class Coordinator']:
             return jsonify({"response": None}), 404
         
     createFire(f'Colleges/{collegeDoc_id}/Faculty',{
         "LoggedIn": False,
-        "DefaultPassword": default_password
+        "Password": default_password
+        }, identity_id)
+    return jsonify({"response": True}), 200
+
+@app.route("/reset-default-student/<collegeDoc_id>/<department_name>/<class_name>/<default_password>/<identity_id>/<userDoc_id>")
+def resetToDefaultPass(collegeDoc_id, department_name, class_name, default_password, identity_id, userDoc_id):
+    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
+            return jsonify({"response": None}), 404
+        
+    createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students',{
+        "LoggedIn": False,
+        "Password": default_password
         }, identity_id)
     return jsonify({"response": True}), 200
 
