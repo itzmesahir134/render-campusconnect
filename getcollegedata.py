@@ -355,7 +355,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "Roles": student_roles,
         "FromDate": from_date,
         "ToDate": to_date,
-        "PhoneNo": phone_no
+        "PhoneNo": phone_no,
         "ParentEmail": parent_email
         
         }, student_id)
