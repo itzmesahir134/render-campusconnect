@@ -349,7 +349,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "IdentityID": student_id,
         "DepartmentName": department_name,
         "ClassName": class_name,
-        "StudentName": student_name,
+        "Name": student_name,
         "CollegeEmail": college_email,
         "DefultPassword": default_password,
         "Roles": student_roles,
