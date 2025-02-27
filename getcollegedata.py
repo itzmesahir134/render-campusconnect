@@ -31,7 +31,43 @@ def createFire(collection_path, data, documentName=False):
     doc_ref.set(data, merge=True)
     return doc_ref
 
-# http://127.0.0.1:5000/read-college-collection/Departments,Computer%20Science,Classes/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3
+# http://127.0.0.1:5000/read-for-signin/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3/Classes?department_name=Information%20Technology
+@app.route("/read-for-user/<collegeDoc_id>/<userDoc_id>/<wanted_info>")
+def readForUser(collegeDoc_id, userDoc_id, wanted_info):
+    if wanted_info == "Departments":
+        docs = db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()
+        return [doc.to_dict().get('DepartmentName') for doc in docs]
+    elif wanted_info == "Classes":
+        department_name = request.args.get('department_name')
+        docs = db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()
+        return [doc.to_dict().get('ClassName') for doc in docs]
+
+# @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
+# def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
+
+
+# http://127.0.0.1:5000/college-login-search/Maharashtra/colleges
+@app.route("/college-login-search/<state>/<college_name>")
+def collegeLogin(state, college_name):
+    query = (
+        db.collection("Colleges")
+        .where("State", "==", state)
+        .where("Keywords", "array_contains", college_name.lower())  # Search in keyword list
+        .stream()
+    )
+
+    # Convert query to list
+    college_list = [doc.to_dict().get("CollegeName", "") for doc in query]
+
+    # Check if there are any results
+    if not college_list:
+        return jsonify({"response": False}), 200  # No results found
+
+    return jsonify({"colleges": college_list}), 200 
+
+    
+#http://127.0.0.1:5000/read-college-collection/Departments,Computer%20Science,Classes/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3
+
 @app.route("/read-college-collection/<collection_name>/<collegeDoc_id>/<userDoc_id>")
 def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','College Head','College Admin','Department Head','Department Admin']:
@@ -101,8 +137,8 @@ def get_data(state, college_email):
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
 #http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
 #http://127.0.0.1:5000/create-colleges/sahir@sbmp.ac.in/Anayah@123/23456789/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/false?collegeHead_email=&Headpassword=
-@app.route("/create-colleges/<college_email>/<password>/<identity_id>/<college_name>/<userDoc_id>/<isHead>")
-def create_college(college_email, password, identity_id, college_name, userDoc_id, isHead):
+@app.route("/create-colleges/<college_email>/<password>/<identity_id>/<college_name>/<state>/<userDoc_id>/<isHead>")
+def create_college(college_email, password, identity_id, college_name, state, userDoc_id, isHead):
     query = (
     db.collection("Colleges")
         .where("CollegeDomain", "==", college_email.split("@")[1])
@@ -129,8 +165,8 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         "Setup": True,
         "MainCollegeHead": collegeHead_email,
         "CollegeDomain": college_email.split('@')[1],
-        "CollegeName": college_name
-        
+        "CollegeName": college_name,
+        "State": state
         })
     
     #Update User Record
@@ -143,7 +179,8 @@ def create_college(college_email, password, identity_id, college_name, userDoc_i
         "CollegePassword": collegeHead_password,
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
-        "Roles": ["Main College Head"]
+        "Roles": ["Main College Head"],
+        "Keywords": college_name.replace(',',' ').split(' ')
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
@@ -352,7 +389,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "ClassName": class_name,
         "Name": student_name,
         "CollegeEmail": college_email,
-        "DefultPassword": default_password,
+        "DefaultPassword": default_password,
         "Roles": student_roles,
         "FromDate": from_date,
         "ToDate": to_date,
