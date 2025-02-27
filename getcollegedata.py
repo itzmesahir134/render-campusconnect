@@ -61,9 +61,9 @@ def collegeLogin(state, college_name):
 
     # Check if there are any results
     if not college_list:
-        return jsonify({"response": False}), 200  # No results found
+        return jsonify({["None"]}), 200  # No results found
 
-    return jsonify({"colleges": college_list}), 200 
+    return jsonify({college_list}), 200 
 
     
 #http://127.0.0.1:5000/read-college-collection/Departments,Computer%20Science,Classes/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3
