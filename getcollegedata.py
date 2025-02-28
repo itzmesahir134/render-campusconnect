@@ -114,7 +114,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                         "LoggedIn": True
                         }, merge=True)
                     
-                return jsonify({"response": "DefaultPassword","collegeInfo": collegeDoc_id}), 200
+                return jsonify({"response": False,"collegeInfo": collegeDoc_id}), 200
         
     else:
         return jsonify({"response": False, "message": "Student not found"}), 404
