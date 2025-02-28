@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
 import pandas as pd
 import io
+import re
 
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
@@ -44,6 +45,43 @@ def readForUser(collegeDoc_id, userDoc_id, wanted_info):
 
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
 # def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
+@app.route("/signin-college/<college_name>/<identity_id>/<college_email>/<password>/<userDoc_id>/<user_type>")
+def collegeLogin(college_name, identity_id, college_email, password, userDoc_id, user_type):
+    college_query = (
+        db.collection("Colleges")
+        .where("CollegeName", "==", college_name)
+        .stream()
+    )
+    collegeDoc_id = None
+    for doc in college_query:
+        collegeDoc_id = doc.id  # Get document ID
+        break
+    student_ref = db.collection(f"Colleges/{collegeDoc_id}/Students").document(identity_id)  # Reference to document
+    student_doc = student_ref.get()  # Get document
+
+    if student_doc.exists:
+        student_data = student_doc.to_dict()
+        if student_data.get('LoggedIn'):
+            if student_data.get('Password') == password and student_data.get('CollegeEmail') == college_email:
+                
+                return jsonify({"response": True}), 200
+        else:
+            if student_data.get('DefaultPassword') == password and student_data.get('CollegeEmail') == college_email:
+                createFire(f'Users/{userDoc_id}/UserColleges',{
+                    "Authority": student_data.get('Authority'),
+                    "CollegeEmail": college_email,
+                    "CollegeName": college_name,
+                    "isTeacher": False,
+                    "CollegePassword": password,
+                    "CollegeID": collegeDoc_id,
+                    "IdentityID": identity_id,
+                    "Roles":  student_data.get('Roles'),
+                    "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
+                    }, collegeDoc_id)
+                return jsonify({"response": "Change Default"}), 200
+        
+    else:
+        return jsonify({"response": False, "message": "Student not found"}), 404
 
 
 # http://127.0.0.1:5000/college-login-search/Maharashtra/colleges
@@ -166,7 +204,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "MainCollegeHead": collegeHead_email,
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
-        "State": state
+        "State": state,
+        "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
         })
     
     #Update User Record
@@ -180,7 +219,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
-        "Keywords": college_name.replace(',',' ').split(' ')
+        "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
@@ -382,7 +421,11 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
     
     if ',' in student_roles: student_roles = student_roles.split(',')
     else: student_roles = [student_roles]
-    createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students',{
+    if 'Class Representative' in student_roles: authority = 'Class Representative'
+    elif 'Class Vice-Representative' in student_roles: authority = 'Class Vice-Representative'
+    elif 'Class Ladies-Representative' in student_roles: authority = 'Class Ladies-Representative'
+    else: authority = 'Student'
+    student_data = {
         "LoggedIn": False,
         "IdentityID": student_id,
         "DepartmentName": department_name,
@@ -396,9 +439,12 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "PhoneNo": phone_no,
         "ParentEmail": parent_email,
         "Password": "Not Logged In",
-        "UserID": "Not Logged In"
-        
-        }, student_id)
+        "UserID": "Not Logged In",
+        "Authority": authority
+        }
+    
+    createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students', student_data, student_id)
+    createFire(f'Colleges/{collegeDoc_id}/Students',student_data, student_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
 
