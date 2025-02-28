@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('etc/secrets/ServiceAccountKey.json'))
 
 # Get Firestore database reference
 db = firestore.client()
@@ -31,6 +31,27 @@ def createFire(collection_path, data, documentName=False):
         doc_ref = db.collection(collection_path).document()
     doc_ref.set(data, merge=True)
     return doc_ref
+
+def find_student_document(student_id, collegeDoc_id):
+    departments_ref = db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()
+
+    for department_doc in departments_ref:
+        department_name = department_doc.id  # Department name from document ID
+        
+        # Get all classes inside the department
+        classes_ref = db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()
+        
+        for class_doc in classes_ref:
+            class_name = class_doc.id  # Class name from document ID
+            
+            # Get the student document reference
+            student_doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").document(student_id)
+            student_doc = student_doc_ref.get()
+            
+            if student_doc.exists:
+                return student_doc_ref  # Return document reference if found
+
+    return None
 
 # http://127.0.0.1:5000/read-for-signin/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3/Classes?department_name=Information%20Technology
 @app.route("/read-for-user/<collegeDoc_id>/<userDoc_id>/<wanted_info>")
@@ -56,33 +77,66 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     for doc in college_query:
         collegeDoc_id = doc.id  # Get document ID
         break
-    student_ref = db.collection(f"Colleges/{collegeDoc_id}/Students").document(identity_id)  # Reference to document
-    student_doc = student_ref.get()  # Get document
+    college_user_ref = db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identity_id)  # Reference to document
+    college_user_ref = college_user_ref.get()  # Get document
 
-    if student_doc.exists:
-        student_data = student_doc.to_dict()
-        if student_data.get('LoggedIn'):
-            if student_data.get('Password') == password and student_data.get('CollegeEmail') == college_email:
+    if college_user_ref.exists:
+        user_data = college_user_ref.to_dict()
+        if user_data.get('LoggedIn'):
+            if user_data.get('Password') == password and user_data.get('CollegeEmail') == college_email:
                 
                 return jsonify({"response": True}), 200
         else:
-            if student_data.get('DefaultPassword') == password and student_data.get('CollegeEmail') == college_email:
+            if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
                 createFire(f'Users/{userDoc_id}/UserColleges',{
-                    "Authority": student_data.get('Authority'),
+                    "Authority": user_data.get('Authority'),
                     "CollegeEmail": college_email,
                     "CollegeName": college_name,
                     "isTeacher": False,
                     "CollegePassword": password,
                     "CollegeID": collegeDoc_id,
                     "IdentityID": identity_id,
-                    "Roles":  student_data.get('Roles'),
+                    "Roles":  user_data.get('Roles'),
                     "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
                     }, collegeDoc_id)
-                return jsonify({"response": "Change Default"}), 200
+                
+                createFire(f"Colleges/{collegeDoc_id}/{user_type}",{
+                    "UserID": userDoc_id,
+                    "Password": password,
+                    "LoggedIn": True
+                    },identity_id)
+                
+                if user_type == "Students":
+                    student_ref = find_student_document(identity_id, collegeDoc_id)
+                    student_ref.set({
+                        "UserID": userDoc_id,
+                        "Password": password,
+                        "LoggedIn": True
+                        }, merge=True)
+                    
+                return jsonify({"response": "DefaultPassword","collegeInfo": collegeDoc_id}), 200
         
     else:
         return jsonify({"response": False, "message": "Student not found"}), 404
-
+    
+@app.rout("change-college-pass/<collegeDoc_id>/<identity_id>/<default_pass>/<new_pass>/<college_email>/<user_type>")
+def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email, user_type):
+    if user_type == "Students":
+        ref = find_student_document(identity_id, collegeDoc_id)
+    elif user_type == "Faculty":
+        ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(identity_id)
+        
+    doc = ref.get().to_dict()
+    if doc.get('Password') == default_pass or doc.get('DefaultPass') == default_pass and doc.get('College Email') == college_email:
+        ref.set({
+            "Password": new_pass,
+            "LoggedIn": True
+            }, merge=True)
+        if user_type == "Students":
+            db.collection(f"Colleges/{collegeDoc_id}/Students").document(identity_id).set({
+                "LoggedIn": True,
+                "Password": new_pass
+                }, merge = True)
 
 # http://127.0.0.1:5000/college-login-search/Maharashtra/colleges
 @app.route("/college-login-search/<state>/<college_name>")
