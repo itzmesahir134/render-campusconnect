@@ -119,7 +119,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     else:
         return jsonify({"response": False, "message": "Student not found"}), 404
     
-@app.rout("change-college-pass/<collegeDoc_id>/<identity_id>/<default_pass>/<new_pass>/<college_email>/<user_type>")
+@app.route("change-college-pass/<collegeDoc_id>/<identity_id>/<default_pass>/<new_pass>/<college_email>/<user_type>")
 def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email, user_type):
     if user_type == "Students":
         ref = find_student_document(identity_id, collegeDoc_id)
