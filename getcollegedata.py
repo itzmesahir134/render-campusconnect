@@ -204,6 +204,24 @@ def readField(collection_path, document_name, field):
     doc = doc_ref.get()
     return jsonify({"response": doc.to_dict().get(field)})
 
+# http://127.0.0.1:5000/Colleges/bjqenSCzXVbupX1E3OYs/Setup/True
+@app.route("/edit-field/<collection_path>/<document_name>/<field>/<value>")
+def editField(collection_path, document_name, field, value):
+    #Didn't add Authentication
+    if ',' in collection_path:
+            path = collection_path._split(',')
+            collection_path = '/'.join(path)
+    doc_ref = db.collection(collection_path).document(document_name)
+    if value == "True": value = True
+    elif value == "False": value = False
+    doc_ref.set({
+            field: value
+        },merge = True)
+    
+    return jsonify({"response": True}), 200
+    
+    
+    
 def read(state, college_email):
     try:
         if '@' not in college_email:
