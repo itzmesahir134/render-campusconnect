@@ -2,9 +2,11 @@ import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
+import requests
 import pandas as pd
 import io
 import re
+from supabase import create_client, Client
 
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
@@ -637,8 +639,42 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
 
     return jsonify({"response": "Add Proper Function Name"})
 
+SUPABASE_URL = "https://ydpuhzopboechregfhti.supabase.co"  # Replace with your Supabase URL
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkcHVoem9wYm9lY2hyZWdmaHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5MDU1NjMsImV4cCI6MjA1MzQ4MTU2M30.aPJzxA8l2SoX3mYGWhIc49pstdYjbLXMtBDHVfcJFwU"  # Replace with your Supabase API Key
+
+# Upload endpoint
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+@app.route('/upload/images', methods=['POST'])
+def upload_to_supabase():
+    BUCKET_NAME = "images"
+    if 'files' not in request.files:
+        return jsonify({'error': 'No files provided'}), 400
+
+    folder_path = request.form.get('folder_path')
+    if not folder_path:
+        return jsonify({'error': 'Folder path is required'}), 400
+
+    files = request.files.getlist('files')
+    uploaded_urls = []
+
+    for file in files:
+        file_name = file.filename
+        file_path = f"{folder_path}/{file_name}"
+
+        # Upload to Supabase bucket
+        try:
+            supabase.storage.from_(BUCKET_NAME).upload(file_path, file)
+            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
+            uploaded_urls.append(public_url)
+        except Exception as e:
+            return jsonify({'error': f'Failed to upload {file_name}', 'details': str(e)}), 500
+
+    return jsonify({'uploaded_urls': uploaded_urls}), 200
 
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
     
 
 @app.route("/")
