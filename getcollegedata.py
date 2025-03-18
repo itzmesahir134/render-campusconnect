@@ -648,29 +648,33 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 @app.route('/upload/images', methods=['POST'])
 def upload_to_supabase():
     BUCKET_NAME = "images"
-    if 'files' not in request.files:
-        return jsonify({'error': 'No files provided'}), 400
-
     folder_path = request.form.get('folder_path')
-    if not folder_path:
-        return jsonify({'error': 'Folder path is required'}), 400
-
     files = request.files.getlist('files')
+
+    if not folder_path or not files:
+        return jsonify({"error": "Missing folder path or files"}), 400
+
     uploaded_urls = []
 
     for file in files:
-        file_name = file.filename
-        file_path = f"{folder_path}/{file_name}"
-
-        # Upload to Supabase bucket
         try:
-            supabase.storage.from_(BUCKET_NAME).upload(file_path, file)
-            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
-            uploaded_urls.append(public_url)
-        except Exception as e:
-            return jsonify({'error': f'Failed to upload {file_name}', 'details': str(e)}), 500
+            # Read file content as bytes
+            file_bytes = file.read()
 
-    return jsonify({'uploaded_urls': uploaded_urls}), 200
+            # Upload the file to Supabase storage
+            file_path = f"{folder_path}/{file.filename}"
+            res = supabase.storage.from_(BUCKET_NAME).upload(
+                file_path, file_bytes, {'content-type': file.content_type}
+            )
+
+            # Get public URL
+            public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path)
+            uploaded_urls.append(public_url)
+
+        except Exception as e:
+            return jsonify({"error": f"Failed to upload {file.filename}", "details": str(e)}), 500
+
+    return jsonify({"uploaded_urls": uploaded_urls}), 200
 
 
 if __name__ == '__main__':
