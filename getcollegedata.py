@@ -282,6 +282,10 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
         })
     
+    createFire('Colleges',{
+        "ID": college_ref.id
+    })
+    
     #Update User Record
     createFire(f'Users/{userDoc_id}/UserColleges', {
         "Authority": "Main College Head",
