@@ -16,6 +16,7 @@ from supabase import create_client, Client
 #need to update Faculty to have their USER REFERENCE when they log in
 #figure out how to change the 'MainCollegeHead' to 'CollegeHead' in 30 days timer
 app = Flask(__name__)
+authorities = ['Main College Head','College Head','College Admin','Department Head','Department Admin', 'Instructor', 'Class Coordinator', 'Class Head', 'Student']
 
 
 # Initialize Firebase Admin SDK only once
@@ -54,6 +55,16 @@ def find_student_document(student_id, collegeDoc_id):
                 return student_doc_ref  # Return document reference if found
 
     return None
+
+
+def find_all_possible_strings(input_string):
+    substrings = []  # Initialize the list
+
+    for i in range(len(input_string)):
+        for j in range(i + 1, len(input_string) + 1):
+            substrings.append(input_string[i:j])
+
+    return substrings
 
 # http://127.0.0.1:5000/read-for-signin/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3/Classes?department_name=Information%20Technology
 @app.route("/read-for-user/<collegeDoc_id>/<userDoc_id>/<wanted_info>")
@@ -99,7 +110,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     "CollegeID": collegeDoc_id,
                     "IdentityID": identity_id,
                     "Roles":  user_data.get('Roles'),
-                    "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
+                    "Keywords": find_all_possible_strings(college_name)
                     }, collegeDoc_id)
                 
                 createFire(f"Colleges/{collegeDoc_id}/{user_type}",{
@@ -164,8 +175,7 @@ def collegeLoginSearch(state, college_name):
 def remove_items_by_roles(removalList, listRemover):
     # Create a new list that excludes the unwanted roles
     outputList = [
-        user for user in removalList
-        if not any(role in listRemover for role in user.get("Roles", []))
+        auth for auth in removalList if auth.get("Authority") not in listRemover
     ]
     return outputList
 
@@ -268,14 +278,6 @@ def get_data(state, college_email):
     return jsonify(data), status
 
 
-def find_all_possible_strings(input_string):
-    substrings = []  # Initialize the list
-
-    for i in range(len(input_string)):
-        for j in range(i + 1, len(input_string) + 1):
-            substrings.append(input_string[i:j])
-
-    return substrings
 
 
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
@@ -311,7 +313,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
         "State": state,
-        "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
+        "Keywords": find_all_possible_strings(college_name.lower())
         })
     
     createFire('Colleges',{
@@ -429,8 +431,14 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         if any(query):  # Convert stream to list to evaluate results
             return jsonify({"response": False}), 200
     
+    
     if "," in role_name: role_name = role_name.split(",")
     else: role_name = [role_name]
+    userAuthorities = [auth for auth in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream().get('Authority')]
+    for auth in authorities:
+        if auth in userAuthorities:
+            userAuthority = auth
+            break
     createFire(f'Colleges/{collegeDoc_id}/Faculty',{
         "LoggedIn": False,
         "Name": full_name,
@@ -439,7 +447,8 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         "IdentityID": identity_id,
         "Roles": role_name,
         "CollegeEmail": college_email,
-        "DefaultPassword": default_password
+        "DefaultPassword": default_password,
+        "Authority": userAuthority
         }, identity_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
