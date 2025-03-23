@@ -186,12 +186,13 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
             path = collection_name.split(',')
             way = '/'.join(path)
             docs = db.collection(f"Colleges/{collegeDoc_id}/{way}").stream()
-            if collection_name == "Faculty":
-                filterList = filter_by_authority(actionList, userAuthority)
-                remove_items_by_roles([doc.to_dict() for doc in docs], filterList)
+            
             return [doc.to_dict() for doc in docs]
         else:
             docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
+            if collection_name == "Faculty":
+                filterList = filter_by_authority(actionList, userAuthority)
+                return remove_items_by_roles([doc.to_dict() for doc in docs], filterList)
             return [doc.to_dict() for doc in docs]
     else: 
         return jsonify({"response": "No Authorization"})
