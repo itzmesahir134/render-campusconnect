@@ -21,7 +21,7 @@ authorities = ['Main College Head','College Head','College Admin','Department He
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('etc/secrets/ServiceAccountKey.json'))
 
 # Get Firestore database reference
 db = firestore.client()
@@ -175,7 +175,7 @@ def collegeLoginSearch(state, college_name):
 def remove_items_by_roles(removalList, listRemover):
     # Create a new list that excludes the unwanted roles
     outputList = [
-        auth for auth in removalList if auth.get("Authority") not in listRemover
+        auth for auth in removalList if auth.get("Authority") in listRemover
     ]
     return outputList
 
@@ -200,9 +200,11 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
             return [doc.to_dict() for doc in docs]
         else:
             docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
+            filterList = filter_by_authority(authorities, userAuthority)
             if collection_name == "Faculty":
-                filterList = filter_by_authority(actionList, userAuthority)
                 return remove_items_by_roles([doc.to_dict() for doc in docs], filterList)
+            elif collection_name == "Roles":
+                return [doc.to_dict() for doc in docs if doc.to_dict().get("Authority") in filterList]
             return [doc.to_dict() for doc in docs]
     else: 
         return jsonify({"response": "No Authorization"})
