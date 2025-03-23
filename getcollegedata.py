@@ -246,6 +246,17 @@ def get_data(state, college_email):
     data, status = read(state, college_email)
     return jsonify(data), status
 
+
+def find_all_possible_strings(input_string):
+    substrings = []  # Initialize the list
+
+    for i in range(len(input_string)):
+        for j in range(i + 1, len(input_string) + 1):
+            substrings.append(input_string[i:j])
+
+    return substrings
+
+
 #?collegeHead_email=something@gmail.com&Headpassword=frdfszerg"
 #http://127.0.0.1:5000/create-colleges/sahir@gmail.com/Anayah123/SBMP/sbfkebcvkdb/True?collegeHead_email=smit@gmail.com&Headpassword=hihuhnediuwjkch
 #http://127.0.0.1:5000/create-colleges/sahir@sbmp.ac.in/Anayah@123/23456789/No%20colleges%20found/ZLByMI4dkUa0vBxakiKbxIMCwvD3/false?collegeHead_email=&Headpassword=
@@ -284,7 +295,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
     
     createFire('Colleges',{
         "ID": college_ref.id
-    })
+    },college_ref.id)
     
     #Update User Record
     createFire(f'Users/{userDoc_id}/UserColleges', {
@@ -297,7 +308,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
-        "Keywords": re.sub(r"[\(\):,-]", " ", college_name)
+        "Keywords": find_all_possible_strings(college_name.lower())
         }, college_ref.id)
     
     #Create MainCollegeHead Faculty
@@ -307,7 +318,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "UserID": data.get('uid'),
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
-        "CollegeEmail": college_email
+        "CollegeEmail": college_email,
+        "Display": False
         },identity_id)
     
     createFire(f'Colleges/{college_ref.id}/Roles', {
@@ -603,9 +615,10 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
             testRoles  = True
             
             roles = facultyDoc.get('Roles (No space after commas)')
-            for i, v in enumerate(roles): roles[i] = v.strip()
             if "," in roles: roles = roles.split(",")
             else: roles = [roles]
+            for i, v in enumerate(roles): roles[i] = v.strip()
+            
             for role in roles:
                 doc = db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get()
                 if doc.exists:
@@ -624,7 +637,7 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
             print('ADD STUDENT FUNCTION')
             
             roles = studentDoc.get('Roles')
-            if "," in roles: roles = roles = roles.split(",")
+            if "," in roles: roles = roles.split(",")
             else: roles = [roles]
             for i, v in enumerate(roles): roles[i] = v.strip()
             for role in roles:
