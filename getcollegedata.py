@@ -161,14 +161,34 @@ def collegeLoginSearch(state, college_name):
 
     
 #http://127.0.0.1:5000/read-college-collection/Departments,Computer%20Science,Classes/bjqenSCzXVbupX1E3OYs/ZLByMI4dkUa0vBxakiKbxIMCwvD3
+def remove_items_by_roles(removalList, listRemover):
+    # Create a new list that excludes the unwanted roles
+    outputList = [
+        user for user in removalList
+        if not any(role in listRemover for role in user.get("Roles", []))
+    ]
+    return outputList
 
+def filter_by_authority(inputList, authority):
+    # Check if the authority exists in the list
+    if authority in inputList:
+        # Get the index of the authority and return the sublist starting from it
+        index = inputList.index(authority)
+        return inputList[index+1:]
+
+#['Main College Head','College Head','College Admin','Department Head','Department Admin', 'Instructor', 'Class Coordinator', 'Class Head', 'Student']
 @app.route("/read-college-collection/<collection_name>/<collegeDoc_id>/<userDoc_id>")
 def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
-    if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') in ['Main College Head','College Head','College Admin','Department Head','Department Admin']:
+    userAuthority = db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority')
+    actionList = ['Main College Head','College Head','College Admin','Department Head','Department Admin']
+    if  userAuthority in actionList:
         if ',' in collection_name:
             path = collection_name.split(',')
             way = '/'.join(path)
             docs = db.collection(f"Colleges/{collegeDoc_id}/{way}").stream()
+            if collection_name == "Faculty":
+                filterList = filter_by_authority(actionList, userAuthority)
+                remove_items_by_roles([doc.to_dict() for doc in docs], filterList)
             return [doc.to_dict() for doc in docs]
         else:
             docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
