@@ -342,7 +342,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
         "CollegeEmail": college_email,
-        "Display": False
+        "Display": False,
+        "Authority": "Main College Head"
         },identity_id)
     
     createFire(f'Colleges/{college_ref.id}/Roles', {
@@ -434,7 +435,10 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
     
     if "," in role_name: role_name = role_name.split(",")
     else: role_name = [role_name]
-    userAuthorities = [auth for auth in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream().get('Authority')]
+    userAuthorities = [doc.to_dict().get('Authority') for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream() if doc.to_dict().get('RoleName') in role_name]
+    print(userAuthorities)
+    print(authorities)
+    userAuthority = None
     for auth in authorities:
         if auth in userAuthorities:
             userAuthority = auth
@@ -638,7 +642,6 @@ def upload_excel(collegeDoc_id, upload_function, userDoc_id):
     count = 0
     if ',' in upload_function: upload_function = upload_function.split(',')
     else: upload_function = [upload_function]
-    print(upload_function)
     
     if upload_function[0] == "AddFaculty":
         for facultyDoc in data:
