@@ -62,10 +62,9 @@ def start_otp_timer(email):
         del otp_storage[email]
         print(f"OTP for {email} expired and was deleted.")
 
-@app.route("/send-otp", methods=["GET"])
-def send_otp():
+@app.route("/send-otp/<email>", methods=["GET"])
+def send_otp(email):
     """Generate and send OTP to user's email."""
-    email = request.args.get("email")
 
     if not email:
         return jsonify({"error": "Email is required"}), 400
@@ -82,11 +81,9 @@ def send_otp():
     else:
         return jsonify({"error": "Failed to send OTP"}), 500
 
-@app.route("/verify-otp", methods=["GET"])
-def verify_otp():
+@app.route("/verify-otp/<email>/<otp>", methods=["GET"])
+def verify_otp(email, encrypted_otp):
     """Verify the OTP after decrypting it."""
-    email = request.args.get("email")
-    encrypted_otp = request.args.get("otp")
 
     if not email or not encrypted_otp:
         return jsonify({"error": "Email and encrypted OTP are required"}), 400
