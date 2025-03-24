@@ -2,12 +2,123 @@ import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
-import requests
 import pandas as pd
 import io
-import re
 from supabase import create_client, Client
+import smtplib
+import random
+import ssl
+import threading
+import time
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes, serialization
 
+app = Flask(__name__)
+
+otp_storage = {}
+# Email Configuration
+SENDER_EMAIL = "sahir.projects134@gmail.com"
+SENDER_PASSWORD = "ykju twfs tkhw mopa"  # Use App Password for security
+
+# Load RSA Private Key (Server decrypts OTPs with this key)
+with open("/etc/secrets/private_key.pem", "rb") as f:
+    private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+# Initialize Firebase Admin SDK only once
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+
+def generate_otp():
+    """Generate a 6-digit OTP."""
+    return str(random.randint(100000, 999999))
+
+def send_otp_email(receiver_email, otp):
+    """Send OTP via email (plaintext)."""
+    subject = "Your Secure OTP Code"
+    body = f"Your OTP Code is: {otp}\n\nUse the provided public key to encrypt and verify it."
+
+    msg = MIMEMultipart()
+    msg["From"] = SENDER_EMAIL
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, receiver_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+def start_otp_timer(email):
+    """Remove OTP from memory after 1 minute."""
+    time.sleep(120)
+    if email in otp_storage:
+        del otp_storage[email]
+        print(f"OTP for {email} expired and was deleted.")
+
+@app.route("/send-otp", methods=["GET"])
+def send_otp():
+    """Generate and send OTP to user's email."""
+    email = request.args.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    otp = generate_otp()
+    otp_storage[email] = otp  # Store plaintext OTP
+    print(f"OTP Storage (before timer): {otp_storage}")
+
+    # Start a thread to remove OTP after 1 minute
+    threading.Thread(target=start_otp_timer, args=(email,), daemon=True).start()
+
+    if send_otp_email(email, otp):
+        return jsonify({"message": "OTP sent successfully!"}), 200
+    else:
+        return jsonify({"error": "Failed to send OTP"}), 500
+
+@app.route("/verify-otp", methods=["GET"])
+def verify_otp():
+    """Verify the OTP after decrypting it."""
+    email = request.args.get("email")
+    encrypted_otp = request.args.get("otp")
+
+    if not email or not encrypted_otp:
+        return jsonify({"error": "Email and encrypted OTP are required"}), 400
+
+    stored_otp = otp_storage.get(email)
+    print(f"OTP Storage (at verification): {otp_storage}")
+
+    if not stored_otp:
+        return jsonify({"error": "Invalid or expired OTP"}), 400
+
+    try:
+        # Decrypt the received encrypted OTP
+        decrypted_otp = private_key.decrypt(
+            bytes.fromhex(encrypted_otp),
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        ).decode()
+        print(f"Decrypted OTP: {decrypted_otp}")
+
+        # Verify the decrypted OTP with the stored OTP
+        if stored_otp == decrypted_otp:
+            del otp_storage[email]  # Remove OTP after successful verification
+            return jsonify({"response": True}), 200
+        else:
+            return jsonify({"response": False}), 400
+
+    except Exception as e:
+        print(f"Decryption error: {e}")
+        return jsonify({"error": "Decryption failed. Invalid OTP"}), 400
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
 #user_id is the unique number given to a user 
@@ -15,13 +126,10 @@ from supabase import create_client, Client
 
 #need to update Faculty to have their USER REFERENCE when they log in
 #figure out how to change the 'MainCollegeHead' to 'CollegeHead' in 30 days timer
-app = Flask(__name__)
 authorities = ['Main College Head','College Head','College Admin','Department Head','Department Admin', 'Instructor', 'Class Coordinator', 'Class Head', 'Student']
 
 
-# Initialize Firebase Admin SDK only once
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+
 
 # Get Firestore database reference
 db = firestore.client()
