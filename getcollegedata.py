@@ -81,7 +81,7 @@ def send_otp(email):
     else:
         return jsonify({"error": "Failed to send OTP"}), 500
 
-@app.route("/verify-otp/<email>/<otp>", methods=["GET"])
+@app.route("/verify-otp/<email>/<encrypted_otp>", methods=["GET"])
 def verify_otp(email, encrypted_otp):
     """Verify the OTP after decrypting it."""
 
