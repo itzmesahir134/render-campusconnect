@@ -97,7 +97,7 @@ def verify_otp(email):
         del otp_storage[email]  # Remove OTP after successful verification
         return jsonify({"response": True}), 200
     else:
-        return jsonify({"response": False}), 400
+        return jsonify({"response": False}), 200
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
 #user_id is the unique number given to a user 
