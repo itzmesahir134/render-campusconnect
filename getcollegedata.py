@@ -86,6 +86,7 @@ def send_otp(email):
 def verify_otp(email):
     """Verify the OTP after decrypting it."""
     encrypted_otp = request.args.get("otp")
+
     if not email or not encrypted_otp:
         return jsonify({"error": "Email and encrypted OTP are required"}), 400
 
@@ -96,10 +97,12 @@ def verify_otp(email):
         return jsonify({"error": "Invalid or expired OTP"}), 400
 
     try:
-        # Decrypt the received encrypted OTP
+        # Decode the encrypted OTP from Base64
         encrypted_bytes = base64.b64decode(encrypted_otp)
+
+        # Decrypt the received encrypted OTP
         decrypted_otp = private_key.decrypt(
-            bytes.fromhex(encrypted_bytes),
+            encrypted_bytes,  # ✅ Correct usage here
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
