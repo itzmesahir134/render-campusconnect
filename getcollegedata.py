@@ -428,7 +428,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
-        "Authority": "Main College Head"
+        "Authority": "Main College Head",
         "Keywords": find_all_possible_strings(college_name.lower())
         }, college_ref.id)
     
