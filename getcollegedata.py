@@ -97,12 +97,10 @@ def verify_otp(email):
         return jsonify({"error": "Invalid or expired OTP"}), 400
 
     try:
-        # Decode the encrypted OTP from Base64
-        encrypted_bytes = base64.b64decode(encrypted_otp)
 
         # Decrypt the received encrypted OTP
         decrypted_otp = private_key.decrypt(
-            encrypted_bytes,  # ✅ Correct usage here
+            encrypted_otp,  # ✅ Correct usage here
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
