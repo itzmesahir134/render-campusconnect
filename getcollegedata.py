@@ -85,9 +85,9 @@ def send_otp(email):
 @app.route("/verify-otp/<email>", methods=["GET"])
 def verify_otp(email):
     """Verify the OTP after decrypting it."""
-    encrypted_otp = request.args.get("otp")
+    encrypted_otp_hex = request.args.get("otp")  # Encrypted OTP sent as hex string
 
-    if not email or not encrypted_otp:
+    if not email or not encrypted_otp_hex:
         return jsonify({"error": "Email and encrypted OTP are required"}), 400
 
     stored_otp = otp_storage.get(email)
@@ -97,16 +97,24 @@ def verify_otp(email):
         return jsonify({"error": "Invalid or expired OTP"}), 400
 
     try:
+        # Decode the encrypted OTP from hex string
+        encrypted_bytes = bytes.fromhex(encrypted_otp_hex)
+        print(f"Length of ciphertext: {len(encrypted_bytes)} bytes")
+
+        # Check if the length matches key size (256 bytes for 2048-bit RSA key)
+        if len(encrypted_bytes) != 256:
+            raise ValueError("Ciphertext length does not match key size")
 
         # Decrypt the received encrypted OTP
         decrypted_otp = private_key.decrypt(
-            encrypted_otp,  # ✅ Correct usage here
+            encrypted_bytes,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
                 label=None
             )
         ).decode()
+
         print(f"Decrypted OTP: {decrypted_otp}")
 
         # Verify the decrypted OTP with the stored OTP
@@ -115,6 +123,10 @@ def verify_otp(email):
             return jsonify({"response": True}), 200
         else:
             return jsonify({"response": False}), 400
+
+    except ValueError as ve:
+        print(f"Decryption error: {ve}")
+        return jsonify({"error": "Ciphertext length mismatch or invalid data"}), 400
 
     except Exception as e:
         print(f"Decryption error: {e}")
