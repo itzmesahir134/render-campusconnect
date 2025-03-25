@@ -14,6 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes, serialization
+import base64
 
 app = Flask(__name__)
 
@@ -96,8 +97,9 @@ def verify_otp(email, encrypted_otp):
 
     try:
         # Decrypt the received encrypted OTP
+        encrypted_bytes = base64.b64decode(encrypted_otp)
         decrypted_otp = private_key.decrypt(
-            bytes.fromhex(encrypted_otp),
+            bytes.fromhex(encrypted_bytes),
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
