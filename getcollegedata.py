@@ -387,11 +387,16 @@ def create_college(college_email, password, identity_id, college_name, state, us
     
     
     if isHead == "true":
+        # They are not the college head (Faculty Memeber)
         collegeHead_email = request.args.get('collegeHead_email')
         collegeHead_password = request.args.get('Headpassword')
-    else:
-        collegeHead_email = college_email
-        collegeHead_password = password
+        
+        createFire(f'Colleges/{college_ref.id}/Faculty', {
+        "Roles": ["Main College Head"],
+        "CollegeEmail": collegeHead_email,
+        "CollegePassword": collegeHead_password,
+        "Authority": "Main College Head"
+        },identity_id)
         
     data = readFire('Users',userDoc_id)
     
@@ -416,7 +421,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
         "isTeacher": False,
-        "CollegePassword": collegeHead_password,
+        "CollegePassword": password,
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
