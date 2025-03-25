@@ -23,10 +23,6 @@ otp_storage = {}
 SENDER_EMAIL = "sahir.projects134@gmail.com"
 SENDER_PASSWORD = "ykju twfs tkhw mopa"  # Use App Password for security
 
-# Load RSA Private Key (Server decrypts OTPs with this key)
-with open("/etc/secrets/private_key.pem", "rb") as f:
-    private_key = serialization.load_pem_private_key(f.read(), password=None)
-
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
     firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
@@ -84,11 +80,11 @@ def send_otp(email):
 
 @app.route("/verify-otp/<email>", methods=["GET"])
 def verify_otp(email):
-    """Verify the OTP after decrypting it."""
-    encrypted_otp_hex = request.args.get("otp")  # Encrypted OTP sent as hex string
+    """Verify the OTP without encryption."""
+    otp = request.args.get("otp")  # Get the OTP from URL query parameter
 
-    if not email or not encrypted_otp_hex:
-        return jsonify({"error": "Email and encrypted OTP are required"}), 400
+    if not email or not otp:
+        return jsonify({"error": "Email and OTP are required"}), 400
 
     stored_otp = otp_storage.get(email)
     print(f"OTP Storage (at verification): {otp_storage}")
@@ -96,41 +92,12 @@ def verify_otp(email):
     if not stored_otp:
         return jsonify({"error": "Invalid or expired OTP"}), 400
 
-    try:
-        # Decode the encrypted OTP from hex string
-        encrypted_bytes = bytes.fromhex(encrypted_otp_hex)
-        print(f"Length of ciphertext: {len(encrypted_bytes)} bytes")
-
-        # Check if the length matches key size (256 bytes for 2048-bit RSA key)
-        if len(encrypted_bytes) != 256:
-            raise ValueError("Ciphertext length does not match key size")
-
-        # Decrypt the received encrypted OTP
-        decrypted_otp = private_key.decrypt(
-            encrypted_bytes,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        ).decode()
-
-        print(f"Decrypted OTP: {decrypted_otp}")
-
-        # Verify the decrypted OTP with the stored OTP
-        if stored_otp == decrypted_otp:
-            del otp_storage[email]  # Remove OTP after successful verification
-            return jsonify({"response": True}), 200
-        else:
-            return jsonify({"response": False}), 400
-
-    except ValueError as ve:
-        print(f"Decryption error: {ve}")
-        return jsonify({"error": "Ciphertext length mismatch or invalid data"}), 400
-
-    except Exception as e:
-        print(f"Decryption error: {e}")
-        return jsonify({"error": "Decryption failed. Invalid OTP"}), 400
+    # Compare the received OTP with the stored OTP
+    if stored_otp == otp:
+        del otp_storage[email]  # Remove OTP after successful verification
+        return jsonify({"response": True}), 200
+    else:
+        return jsonify({"response": False}), 400
 #ref google object that is the full path to a document or collection
 #doc_id is the unique number used as the document name
 #user_id is the unique number given to a user 
