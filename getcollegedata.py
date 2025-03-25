@@ -391,12 +391,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         collegeHead_email = request.args.get('collegeHead_email')
         collegeHead_password = request.args.get('Headpassword')
         
-        createFire(f'Colleges/{college_ref.id}/Faculty', {
-        "Roles": ["Main College Head"],
-        "CollegeEmail": collegeHead_email,
-        "CollegePassword": collegeHead_password,
-        "Authority": "Main College Head"
-        },identity_id)
+        
         
     data = readFire('Users',userDoc_id)
     
@@ -409,6 +404,14 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "State": state,
         "Keywords": find_all_possible_strings(college_name.lower())
         })
+    
+    createFire(f'Colleges/{college_ref.id}/Faculty', {
+        "Roles": ["Main College Head"],
+        "CollegeEmail": collegeHead_email,
+        "CollegePassword": collegeHead_password,
+        "Roles": ["Main College Head"],
+        "Authority": "Main College Head"
+        },identity_id)
     
     createFire('Colleges',{
         "ID": college_ref.id
@@ -425,6 +428,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
+        "Authority": "Main College Head"
         "Keywords": find_all_possible_strings(college_name.lower())
         }, college_ref.id)
     
