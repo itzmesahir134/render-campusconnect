@@ -437,7 +437,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "Roles": ["Main College Head"],
         "CollegeEmail": college_email,
         "Display": False,
-        "Authority": "Main College Head"
+        "Authority": "Main College Head",
+        "CollegePassword": password
         },identity_id)
     
     createFire(f'Colleges/{college_ref.id}/Roles', {
