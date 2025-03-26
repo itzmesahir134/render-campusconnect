@@ -179,7 +179,6 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
         break
     college_user_ref = db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identity_id)  # Reference to document
     college_user_ref = college_user_ref.get()  # Get document
-    print(college_user_ref.get('Name'))
     if college_user_ref.exists:
         user_data = college_user_ref.to_dict()
         createFire(f'Users/{userDoc_id}/UserColleges',{
@@ -199,17 +198,20 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                 return jsonify({"response": True,"collegeInfo": collegeDoc_id}), 200
         else:
             if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
-                
+                ref = db.collection(f"Users").document(userDoc_id).get().to_dict().get('FullName')
                 createFire(f"Colleges/{collegeDoc_id}/{user_type}",{
                     "UserID": userDoc_id,
+                    "UserDocID": userDoc_id,
                     "Password": password,
-                    "LoggedIn": True
+                    "LoggedIn": True,
+                    "Name": 
                     },identity_id)
                 
                 if user_type == "Students":
                     student_ref = find_student_document(identity_id, collegeDoc_id)
                     student_ref.set({
                         "UserID": userDoc_id,
+                        "UserDocID": userDoc_id,
                         "Password": password,
                         "LoggedIn": True
                         }, merge=True)
@@ -667,6 +669,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "PhoneNo": phone_no,
         "ParentEmail": parent_email,
         "Password": "Not Logged In",
+        "UserDocID": "Not Logged In",
         "UserID": "Not Logged In",
         "Authority": authority
         }
