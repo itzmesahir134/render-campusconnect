@@ -198,13 +198,13 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                 return jsonify({"response": True,"collegeInfo": collegeDoc_id}), 200
         else:
             if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
-                ref = db.collection(f"Users").document(userDoc_id).get().to_dict().get('FullName')
+                Name = db.collection(f"Users").document(userDoc_id).get().to_dict().get('full_name')
                 createFire(f"Colleges/{collegeDoc_id}/{user_type}",{
                     "UserID": userDoc_id,
                     "UserDocID": userDoc_id,
                     "Password": password,
                     "LoggedIn": True,
-                    "Name": 
+                    "Name": Name
                     },identity_id)
                 
                 if user_type == "Students":
