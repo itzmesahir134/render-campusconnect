@@ -196,7 +196,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
         if user_data.get('LoggedIn'):
             if user_data.get('Password') == password and user_data.get('CollegeEmail') == college_email:
                 
-                return jsonify({"response": False,"collegeInfo": collegeDoc_id}), 200
+                return jsonify({"response": True,"collegeInfo": collegeDoc_id}), 200
         else:
             if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
                 
@@ -227,7 +227,7 @@ def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email
         ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(identity_id)
         
     doc = ref.get().to_dict()
-    if doc.get('Password') == default_pass or doc.get('DefaultPass') == default_pass and doc.get('College Email') == college_email:
+    if doc.get('Password') == default_pass or doc.get('DefaultPassword') == default_pass and doc.get('CollegeEmail') == college_email:
         ref.set({
             "Password": new_pass,
             "LoggedIn": True
