@@ -179,7 +179,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
         break
     college_user_ref = db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identity_id)  # Reference to document
     college_user_ref = college_user_ref.get()  # Get document
-
+    print(college_user_ref.get('Name'))
     if college_user_ref.exists:
         user_data = college_user_ref.to_dict()
         if user_data.get('LoggedIn'):
@@ -389,8 +389,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
     if isHead == "true":
         # They are not the college head (Faculty Memeber)
         collegeHead_email = request.args.get('collegeHead_email')
-        collegeHead_password = request.args.get('Headpassword')
-        
+    else:
+        collegeHead_email = college_email
         
         
     data = readFire('Users',userDoc_id)
@@ -404,14 +404,17 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "State": state,
         "Keywords": find_all_possible_strings(college_name.lower())
         })
-    
-    createFire(f'Colleges/{college_ref.id}/Faculty', {
-        "Roles": ["Main College Head"],
-        "CollegeEmail": collegeHead_email,
-        "CollegePassword": collegeHead_password,
-        "Roles": ["Main College Head"],
-        "Authority": "Main College Head"
-        },identity_id)
+    if isHead == "true":
+        createFire(f'Colleges/{college_ref.id}/Faculty', {
+            "Roles": ["Main College Head"],
+            "CollegeEmail": request.args.get('collegeHead_email'),
+            "Password": request.args.get('Headpassword'),
+            "isTeacher": False,
+            "Roles": ["Main College Head"],
+            "Display": False,
+            "Authority": "Main College Head",
+            "LoggedIn": False,
+            },request.args.get('id'))
     
     createFire('Colleges',{
         "ID": college_ref.id
@@ -424,19 +427,21 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
         "isTeacher": False,
-        "CollegePassword": password,
+        "Password": password,
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
-        "Authority": "Main College Head",
         "Keywords": find_all_possible_strings(college_name.lower())
         }, college_ref.id)
-    
+
     #Create MainCollegeHead Faculty
     createFire(f'Colleges/{college_ref.id}/Faculty', {
         "Name": data.get("display_name"),
         "UserDocID": userDoc_id,
         "UserID": data.get('uid'),
+        "DefaultPassword": password,
+        "Password": password,
+        "LoggedIn": True,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
         "CollegeEmail": college_email,
@@ -509,7 +514,7 @@ def add_role(collegeDoc_id, role_name, authority_level, is_teacher, userDoc_id, 
         "isTeacher": is_teacher
         }, role_name)
     
-    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Roles").stream()]}), 200
+    return jsonify({"response": True, "data": readCollegeCollections("Roles", collegeDoc_id, userDoc_id)}), 200
 
 # http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Sahir%20Shaikh/oewhfniube@gmail.com/576364567/Pass@123/poggers/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 # http://127.0.0.1:5000/add-faculty/dPpg783dvE2N11hZVzps/Vivek/helo1vivek@gmail.com/4654w5/Pass@123/Head%20Of%20Department,Instructor/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
@@ -554,7 +559,7 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         "Authority": userAuthority
         }, identity_id)
     
-    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
+    return jsonify({"response": True, "data": readCollegeCollections("Faculty", collegeDoc_id, userDoc_id)}), 200
 
 #List of Programs = ['Certificate Program', 'Diploma Program', 'Associate Degree', 'Bachelor’s Degree', 'Post-Baccalaureate/Graduate Certificate', 'Master’s Degree', 'Doctoral Programs (Ph.D. or Professional Doctorates)', 'Post-Doctoral Studies']
 # http://127.0.0.1:5000/add-department/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
