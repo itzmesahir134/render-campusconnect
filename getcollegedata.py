@@ -184,7 +184,17 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
         user_data = college_user_ref.to_dict()
         if user_data.get('LoggedIn'):
             if user_data.get('Password') == password and user_data.get('CollegeEmail') == college_email:
-                
+                createFire(f'Users/{userDoc_id}/UserColleges',{
+                    "Authority": user_data.get('Authority'),
+                    "CollegeEmail": college_email,
+                    "CollegeName": college_name,
+                    "isTeacher": False,
+                    "CollegePassword": password,
+                    "CollegeID": collegeDoc_id,
+                    "IdentityID": identity_id,
+                    "Roles":  user_data.get('Roles'),
+                    "Keywords": find_all_possible_strings(college_name)
+                    }, collegeDoc_id)
                 return jsonify({"response": True}), 200
         else:
             if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
