@@ -102,7 +102,10 @@ def verify_otp(email):
 #doc_id is the unique number used as the document name
 #user_id is the unique number given to a user 
 #pressing space when defining a document/collection name can lead to issues as it dosen't appear on the document but does if mentioned in the document i.e 'DepartmentName'
+#
 
+
+# ISSUE: if user logs into the college from another account the user ID dosen't change (idk if we want to change that or not or have a way to keep multiple or just not use it)
 #need to update Faculty to have their USER REFERENCE when they log in
 #figure out how to change the 'MainCollegeHead' to 'CollegeHead' in 30 days timer
 authorities = ['Main College Head','College Head','College Admin','Department Head','Department Admin', 'Instructor', 'Class Coordinator', 'Class Head', 'Student']
@@ -163,6 +166,11 @@ def readForUser(collegeDoc_id, userDoc_id, wanted_info):
         department_name = request.args.get('department_name')
         docs = db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()
         return [doc.to_dict().get('ClassName') for doc in docs]
+    
+@app.route("/faculty-not-in-department/<collegeDoc_id>/<department_name>")
+def faculty_not_in_department(collegeDoc_id, department_name):
+    docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
+    return [doc.to_dict().get('Name') for doc in docs if department_name not in doc.to_dict().get('DepartmentList') ], 200
 
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
 # def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
