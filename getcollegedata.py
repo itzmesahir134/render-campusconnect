@@ -175,10 +175,26 @@ def faculty_not_in_department(collegeDoc_id, department_name):
         ids.append(doc.get("IdentityID"))
     return {"FacultyName":names,"FacultyID":ids}, 200
 
+@app.route("/update-faculty-departmentlist/<type>/<collegeDoc_id>/<department_name>/<faculty_id>")
+def update_faculty_departmentlist(type, collegeDoc_id, department_name, faculty_id):
+    doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
+    if type == "Add":
+        doc_ref.update({
+            "DepartmentList": firestore.ArrayUnion([department_name]),
+            "ClassList.{}".format(department_name.replace(" ", "_")): firestore.ArrayUnion([""])
+        })
+        return {"Response": "Added"}, 200
+    elif type == "Remove":
+        doc_ref.update({
+            "DepartmentList": firestore.ArrayRemove([department_name]),
+            "ClassList.{}".format(department_name.replace(" ", "_")): firestore.DELETE_FIELD
+        })
+        return {"Response": "Removed"}, 200
+
 @app.route("/faculty-not-in-class/<collegeDoc_id>/<department_name>/<class_name>")
 def faculty_not_in_class(collegeDoc_id, department_name, class_name):
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
-    finalList = [doc.to_dict() for doc in docs if class_name not in doc.to_dict().get('ClassList').get(department_name) ]
+    finalList = [doc.to_dict() for doc in docs if class_name not in doc.to_dict().get('ClassList').get(department_name.replace(" ","_")) ]
     names = []
     ids = []
     for doc in finalList:
@@ -186,6 +202,20 @@ def faculty_not_in_class(collegeDoc_id, department_name, class_name):
         ids.append(doc.get("IdentityID"))
     return {"FacultyName":names,"FacultyID":ids}, 200
 
+@app.route("/update-faculty-classlist/<type>/<collegeDoc_id>/<department_name>/<class_name>/<faculty_id>")
+def update_faculty_classlist(type, collegeDoc_id, department_name, class_name, faculty_id):
+    doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
+    if type == "Add":
+        doc_ref.update({
+            "ClassList.{}".format(department_name.replace(" ", "_")): firestore.ArrayUnion([class_name])
+        })
+        return {"Response": "Added"}, 200
+    elif type == "Remove":
+        doc_ref.update({
+            "ClassList.{}".format(department_name.replace(" ", "_")): firestore.ArrayRemove([class_name])
+        })
+        return {"Response": "Removed"}, 200
+        
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
 # def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
 @app.route("/signin-college/<college_name>/<identity_id>/<college_email>/<password>/<userDoc_id>/<user_type>")
