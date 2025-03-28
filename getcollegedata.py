@@ -446,7 +446,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
 
     #Create MainCollegeHead Faculty
     createFire(f'Colleges/{college_ref.id}/Faculty', {
-        "Name": data.get("display_name"),
+        "Name": data.get("full_name"),
         "UserDocID": userDoc_id,
         "UserID": data.get('uid'),
         "DefaultPassword": password,
