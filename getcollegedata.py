@@ -12,9 +12,6 @@ import threading
 import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes, serialization
-import base64
 
 app = Flask(__name__)
 
@@ -178,6 +175,17 @@ def faculty_not_in_department(collegeDoc_id, department_name):
         ids.append(doc.get("IdentityID"))
     return {"FacultyName":names,"FacultyID":ids}, 200
 
+@app.route("/faculty-not-in-class/<collegeDoc_id>/<department_name>/<class_name>")
+def faculty_not_in_class(collegeDoc_id, department_name, class_name):
+    docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
+    finalList = [doc.to_dict() for doc in docs if class_name not in doc.to_dict().get('ClassList').get(department_name) ]
+    names = []
+    ids = []
+    for doc in finalList:
+        names.append(doc.get("Name"))
+        ids.append(doc.get("IdentityID"))
+    return {"FacultyName":names,"FacultyID":ids}, 200
+
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
 # def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
 @app.route("/signin-college/<college_name>/<identity_id>/<college_email>/<password>/<userDoc_id>/<user_type>")
@@ -204,7 +212,10 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     "CollegeID": collegeDoc_id,
                     "IdentityID": identity_id,
                     "Roles":  user_data.get('Roles'),
-                    "Keywords": find_all_possible_strings(college_name)
+                    "Keywords": find_all_possible_strings(college_name),
+                    "DepartmentList": user_data.get("DepartmentList"),
+                    "ClassList": user_data.get("ClassList")
+                    
                     }, collegeDoc_id)
         if user_data.get('LoggedIn'):
             if user_data.get('Password') == password and user_data.get('CollegeEmail') == college_email:
@@ -430,6 +441,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
             "Display": False,
             "Authority": "Main College Head",
             "LoggedIn": False,
+            "DepartmentList": [""],
+            "ClassList": {"DefaultDepartmentName":[""]}
             },request.args.get('id'))
     
     createFire('Colleges',{
@@ -447,7 +460,9 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeID": college_ref.id,
         "IdentityID": identity_id,
         "Roles": ["Main College Head"],
-        "Keywords": find_all_possible_strings(college_name.lower())
+        "Keywords": find_all_possible_strings(college_name.lower()),
+        "DepartmentList": [""],
+        "ClassList": {"DefaultDepartmentName":[""]}
         }, college_ref.id)
 
     #Create MainCollegeHead Faculty
@@ -463,7 +478,9 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeEmail": college_email,
         "Display": False,
         "Authority": "Main College Head",
-        "CollegePassword": password
+        "CollegePassword": password,
+        "DepartmentList": [""],
+        "ClassList": {"DefaultDepartmentName":[""]}
         },identity_id)
     
     createFire(f'Colleges/{college_ref.id}/Roles', {
@@ -572,7 +589,9 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
         "Roles": role_name,
         "CollegeEmail": college_email,
         "DefaultPassword": default_password,
-        "Authority": userAuthority
+        "Authority": userAuthority,
+        "DepartmentList": [""],
+        "ClassList": {"DefaultDepartmentName":[""]}
         }, identity_id)
     
     return jsonify({"response": True, "data": readCollegeCollections("Faculty", collegeDoc_id, userDoc_id)}), 200
@@ -685,7 +704,9 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
         "Password": "Not Logged In",
         "UserDocID": "Not Logged In",
         "UserID": "Not Logged In",
-        "Authority": authority
+        "Authority": authority,
+        "DepartmentList": ["",department_name],
+        "ClassList": {"DefaultDepartmentName":[""],department_name:[class_name]}
         }
     
     createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students', student_data, student_id)
