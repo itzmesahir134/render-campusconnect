@@ -176,7 +176,7 @@ def faculty_not_in_department(collegeDoc_id, department_name):
     for doc in finalList:
         names.append(doc.get("Name"))
         ids.append(doc.get("IdentityID"))
-    return {"FacultyName":name,"FacultyID":ids}, 200
+    return {"FacultyName":names,"FacultyID":ids}, 200
 
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
 # def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
