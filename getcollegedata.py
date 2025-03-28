@@ -182,13 +182,13 @@ def update_faculty_departmentlist(type, collegeDoc_id, department_name, faculty_
     if type == "Add":
         doc_ref.update({
             "DepartmentList": firestore.ArrayUnion([department_name]),
-            f"ClassList.{department_name}": firestore.ArrayUnion([""])
+            f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayUnion([""])
         })
         return {"Response": "Added"}, 200
     elif type == "Remove":
         doc_ref.update({
             "DepartmentList": firestore.ArrayRemove([department_name]),
-            f"ClassList.{department_name}": firestore.DELETE_FIELD
+            f"ClassList.{department_name.replace(' ', '_')}": firestore.DELETE_FIELD
         })
         return {"Response": "Removed"}, 200
 
@@ -196,25 +196,27 @@ def update_faculty_departmentlist(type, collegeDoc_id, department_name, faculty_
 def faculty_not_in_class(collegeDoc_id, department_name, class_name):
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
     facultyWithDep = [doc.to_dict() for doc in docs if department_name in doc.to_dict().get('DepartmentList')]
-    finalList = [doc for doc in facultyWithDep if class_name not in doc.get('ClassList').get(department_name) ]
+    finalList = [doc for doc in facultyWithDep if class_name not in doc.get('ClassList').get(department_name.replace(' ', '_'))]
     names = []
     ids = []
     for doc in finalList:
         names.append(doc.get("Name"))
         ids.append(doc.get("IdentityID"))
-    return {"FacultyName":names,"FacultyID":ids}, 200
+    return {"FacultyName":names,"FacultyID":ids, "FacultyDoc":finalList}, 200
+
+
 
 @app.route("/update-faculty-classlist/<type>/<collegeDoc_id>/<department_name>/<class_name>/<faculty_id>")
 def update_faculty_classlist(type, collegeDoc_id, department_name, class_name, faculty_id):
     doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
     if type == "Add":
         doc_ref.update({
-            f"ClassList.{department_name}": firestore.ArrayUnion([class_name])
+            f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayUnion([class_name])
         })
         return {"Response": "Added"}, 200
     elif type == "Remove":
         doc_ref.update({
-            f"ClassList.{department_name}": firestore.ArrayRemove([class_name])
+            f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayRemove([class_name])
         })
         return {"Response": "Removed"}, 200
         
