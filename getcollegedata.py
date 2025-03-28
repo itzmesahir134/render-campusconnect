@@ -170,7 +170,13 @@ def readForUser(collegeDoc_id, userDoc_id, wanted_info):
 @app.route("/faculty-not-in-department/<collegeDoc_id>/<department_name>")
 def faculty_not_in_department(collegeDoc_id, department_name):
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
-    return [doc.to_dict().get('Name') for doc in docs if department_name not in doc.to_dict().get('DepartmentList') ], 200
+    finalList = [doc.to_dict() for doc in docs if department_name not in doc.to_dict().get('DepartmentList') ]
+    names = []
+    ids = []
+    for doc in finalList:
+        names.append(doc.get("Name"))
+        ids.append(doc.get("IdentityID"))
+    return {"FacultyName":name,"FacultyID":ids}, 200
 
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
 # def collegeLogin(collegeDoc_id, userDoc_id, student_or_faculty, identity_id):
