@@ -202,7 +202,7 @@ def faculty_not_in_class(collegeDoc_id, department_name, class_name):
     for doc in finalList:
         names.append(doc.get("Name"))
         ids.append(doc.get("IdentityID"))
-    return {"FacultyName":names,"FacultyID":ids, "FacultyDoc":finalList}, 200
+    return {"FacultyName":names,"FacultyID":ids, "FacultyDoc":[doc for doc in facultyWithDep if class_name in doc.get('ClassList').get(department_name.replace(' ', '_'))]}, 200
 
 
 
