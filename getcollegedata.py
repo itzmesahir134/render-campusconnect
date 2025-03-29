@@ -267,7 +267,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     "Name": Name
                     },identity_id)
                 
-                if user_type == "Students":
+                if user_type == "Student":
                     student_ref = find_student_document(identity_id, collegeDoc_id)
                     student_ref.set({
                         "UserID": userDoc_id,
@@ -283,7 +283,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     
 @app.route("/change-college-pass/<collegeDoc_id>/<identity_id>/<default_pass>/<new_pass>/<college_email>/<user_type>")
 def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email, user_type):
-    if user_type == "Students":
+    if user_type == "Student":
         ref = find_student_document(identity_id, collegeDoc_id)
     elif user_type == "Faculty":
         ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(identity_id)
