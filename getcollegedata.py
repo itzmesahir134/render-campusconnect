@@ -238,11 +238,12 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     if college_user_ref.exists:
         user_data = college_user_ref.to_dict()
         createFire(f'Users/{userDoc_id}/UserColleges',{
+                    "UserType": user_data.get('UserType'),
                     "Authority": user_data.get('Authority'),
                     "CollegeEmail": college_email,
                     "CollegeName": college_name,
                     "isTeacher": False,
-                    "CollegePassword": password,
+                    "Passsword": password,
                     "CollegeID": collegeDoc_id,
                     "IdentityID": identity_id,
                     "Roles":  user_data.get('Roles'),
@@ -467,13 +468,19 @@ def create_college(college_email, password, identity_id, college_name, state, us
         })
     if isHead == "true":
         createFire(f'Colleges/{college_ref.id}/Faculty', {
+            "UserType": "Faculty",
+            "Authority": "Main College Head",
             "Roles": ["Main College Head"],
             "CollegeEmail": request.args.get('collegeHead_email'),
-            "Password": request.args.get('Headpassword'),
+            "CollegeDomain": college_email.split('@')[1],
+            "CollegeName": college_name,
             "isTeacher": False,
-            "Roles": ["Main College Head"],
+            "Password": request.args.get('Headpassword'),
+            "CollegeID": college_ref.id,
+            "DefaultPassword": request.args.get('Headpassword'),
+            "IdentityID": request.args.get('id'),
+            "Keywords": find_all_possible_strings(college_name.lower()),
             "Display": False,
-            "Authority": "Main College Head",
             "LoggedIn": False,
             "DepartmentList": [""],
             "ClassList": {"DefaultDepartmentName":[""]}
@@ -485,22 +492,31 @@ def create_college(college_email, password, identity_id, college_name, state, us
     
     #Update User Record
     createFire(f'Users/{userDoc_id}/UserColleges', {
+        "UserType": data.get("UserType"),
+        "Name": data.get("full_name"),
         "Authority": "Main College Head",
+        "Roles": ["Main College Head"],
+        "UserDocID": userDoc_id,
+        "UserID": data.get('uid'),
         "CollegeEmail": college_email,
         "CollegeDomain": college_email.split('@')[1],
         "CollegeName": college_name,
         "isTeacher": False,
         "Password": password,
         "CollegeID": college_ref.id,
+        "DefaultPassword": password,
         "IdentityID": identity_id,
-        "Roles": ["Main College Head"],
         "Keywords": find_all_possible_strings(college_name.lower()),
+        "Display": False,
+        "Password": password,
+        "LoggedIn": True,
         "DepartmentList": [""],
         "ClassList": {"DefaultDepartmentName":[""]}
         }, college_ref.id)
 
     #Create MainCollegeHead Faculty
     createFire(f'Colleges/{college_ref.id}/Faculty', {
+        "UserType": "Faculty",
         "Name": data.get("full_name"),
         "UserDocID": userDoc_id,
         "UserID": data.get('uid'),
@@ -512,7 +528,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "CollegeEmail": college_email,
         "Display": False,
         "Authority": "Main College Head",
-        "CollegePassword": password,
+        "Password": password,
         "DepartmentList": [""],
         "ClassList": {"DefaultDepartmentName":[""]}
         },identity_id)
@@ -615,6 +631,7 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
             userAuthority = auth
             break
     createFire(f'Colleges/{collegeDoc_id}/Faculty',{
+        "UserType": "Faculty",
         "LoggedIn": False,
         "Name": full_name,
         "UserDocID": "Not Logged In",
@@ -731,6 +748,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
     elif 'Class Ladies-Representative' in student_roles: authority = 'Class Ladies-Representative'
     else: authority = 'Student'
     student_data = {
+        "UserType": "Student",
         "LoggedIn": False,
         "IdentityID": student_id,
         "DepartmentName": department_name,
@@ -755,6 +773,10 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
     createFire(f'Colleges/{collegeDoc_id}/Students',student_data, student_id)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
+
+@app.route("/get-classes")
+def get_classes(collegeDoc_id, deartment_name, class_name, userDoc_id):
+    db.collection.
 
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
