@@ -233,6 +233,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     for doc in college_query:
         collegeDoc_id = doc.id  # Get document ID
         break
+    if user_type == "Student": user_type = "Students"
     college_user_ref = db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identity_id)  # Reference to document
     college_user_ref = college_user_ref.get()  # Get document
     if college_user_ref.exists:
@@ -294,7 +295,7 @@ def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email
             "Password": new_pass,
             "LoggedIn": True
             }, merge=True)
-        if user_type == "Students":
+        if user_type == "Student":
             db.collection(f"Colleges/{collegeDoc_id}/Students").document(identity_id).set({
                 "LoggedIn": True,
                 "Password": new_pass
@@ -774,9 +775,12 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
 
-@app.route("/get-classes")
-def get_classes(collegeDoc_id, deartment_name, class_name, userDoc_id):
-    db.collection.
+@app.route("/get-classes/<collegeDoc_id>/<deprtment_name>/<identityID>/<user_type>")
+def get_classes(collegeDoc_id, deprtment_name, identityID, user_type):
+    if user_type == "Student": user_type = "Students"
+    return db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identityID).get().to_dict().get('ClassList').get(deprtment_name), 200
+    
+    
 
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
