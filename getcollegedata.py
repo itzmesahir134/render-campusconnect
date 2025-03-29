@@ -360,16 +360,16 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
 @app.route("/find-faculty-authority/<authority>/<collegeDoc_id>")
 def find_faculty_Authority(authority, collegeDoc_id):
     faculty = []
+    facultyID = [] 
     docs = db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()
     for doc in [doc.to_dict() for doc in docs]:
-        print('Faculty: ', doc.get('Name'))
         for role in doc.get('Roles'):
-            print(role)
             if db.collection(f"Colleges/{collegeDoc_id}/Roles").document(role).get().to_dict().get('Authority') == authority:
                 faculty.append(doc.get('Name'))
+                facultyID.append(doc.get('IdentityID'))
     
     if faculty != []:
-        return {"response": True, "data": faculty}
+        return {"response": True, "data": faculty, "ids": facultyID}
     else:
         return {"response": False, "data": f"Assign {authority} Authority"}
 
@@ -632,8 +632,8 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
 
 #List of Programs = ['Certificate Program', 'Diploma Program', 'Associate Degree', 'Bachelor’s Degree', 'Post-Baccalaureate/Graduate Certificate', 'Master’s Degree', 'Doctoral Programs (Ph.D. or Professional Doctorates)', 'Post-Doctoral Studies']
 # http://127.0.0.1:5000/add-department/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
-@app.route("/add-department/<collegeDoc_id>/<department_name>/<abbreviation>/<field_of_study>/<department_head>/<study_level>/<format>/<userDoc_id>/<delete_prev>")
-def add_department(collegeDoc_id, department_name, abbreviation, field_of_study, department_head, study_level, format, userDoc_id, delete_prev):
+@app.route("/add-department/<collegeDoc_id>/<department_name>/<abbreviation>/<field_of_study>/<department_head_name>/<department_head_id>/<study_level>/<format>/<userDoc_id>/<delete_prev>")
+def add_department(collegeDoc_id, department_name, abbreviation, field_of_study, department_head_id, study_level, format, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
         return jsonify({"response": None}), 404
     
@@ -649,12 +649,14 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
     
         if any(query):  # Convert stream to list to evaluate results
             return jsonify({"response": False}), 200
-    
+    hod_ref = db.collection(f'Colleges/{collegeDoc_id}/Faculty').document(department_head_id)
+    update_faculty_departmentlist("Add", collegeDoc_id, department_name, department_head_id)
     createFire(f'Colleges/{collegeDoc_id}/Departments',{
+        "DepartmentHeadID": department_head_id,
         "DepartmentName": department_name,
         "Abbreviation": abbreviation,
         "FieldOfStudy": field_of_study,
-        "DepartmentHead": department_head,
+        "DepartmentHead": hod_ref.get().to_dict().get('Name'),
         "Format": format,
         "StudyLevel": study_level,
         
@@ -664,7 +666,7 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
 
 # http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator>/<courses>/<format>/<year_or_semester>/<userDoc_id>/<delete_prev>")
-def add_class(collegeDoc_id, department_name, class_name, class_coordinator, courses, format, year_or_semester, userDoc_id, delete_prev):
+def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, courses, format, year_or_semester, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin', 'Department Head', 'Department Admin']:
         return jsonify({"response": None}), 404
     
@@ -683,11 +685,14 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator, cou
         
     if ',' in courses: courses = courses.split(',')
     else: courses = [courses]
-    
+    cc_ref = db.collection(f'Colleges/{collegeDoc_id}/Faculty').document(class_coordinator_id)
+    update_faculty_departmentlist("Add", collegeDoc_id, department_name, class_coordinator_id)
+    update_faculty_classlist("Add", collegeDoc_id, department_name, class_name, class_coordinator_id)
     createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes',{
         "DepartmentName": department_name,
         "ClassName": class_name,
-        "ClassCoordinator": class_coordinator,
+        "ClassCoordinator": cc_ref.get().to_dict().get('Name'),
+        "ClassCoordinatorID": class_coordinator_id,
         "Courses": courses,
         "Format": format,
         "Year/Semester": year_or_semester,
