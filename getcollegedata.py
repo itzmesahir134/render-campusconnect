@@ -651,6 +651,9 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
             return jsonify({"response": False}), 200
     hod_ref = db.collection(f'Colleges/{collegeDoc_id}/Faculty').document(department_head_id)
     update_faculty_departmentlist("Add", collegeDoc_id, department_name, department_head_id)
+    dep_docs = readCollegeCollections(f'Departments,{department_name},Classes',collegeDoc_id, userDoc_id)
+    for dep in dep_docs:
+        update_faculty_classlist("Add", collegeDoc_id, department_name, dep.get('ClassName'), department_head_id)
     createFire(f'Colleges/{collegeDoc_id}/Departments',{
         "DepartmentHeadID": department_head_id,
         "DepartmentName": department_name,
