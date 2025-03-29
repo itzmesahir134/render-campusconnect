@@ -632,7 +632,7 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
 
 #List of Programs = ['Certificate Program', 'Diploma Program', 'Associate Degree', 'Bachelor’s Degree', 'Post-Baccalaureate/Graduate Certificate', 'Master’s Degree', 'Doctoral Programs (Ph.D. or Professional Doctorates)', 'Post-Doctoral Studies']
 # http://127.0.0.1:5000/add-department/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
-@app.route("/add-department/<collegeDoc_id>/<department_name>/<abbreviation>/<field_of_study>/<department_head_name>/<department_head_id>/<study_level>/<format>/<userDoc_id>/<delete_prev>")
+@app.route("/add-department/<collegeDoc_id>/<department_name>/<abbreviation>/<field_of_study>/<department_head_id>/<study_level>/<format>/<userDoc_id>/<delete_prev>")
 def add_department(collegeDoc_id, department_name, abbreviation, field_of_study, department_head_id, study_level, format, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
         return jsonify({"response": None}), 404
@@ -665,7 +665,7 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()]}), 200
 
 # http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
-@app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator>/<courses>/<format>/<year_or_semester>/<userDoc_id>/<delete_prev>")
+@app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator_id>/<courses>/<format>/<year_or_semester>/<userDoc_id>/<delete_prev>")
 def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, courses, format, year_or_semester, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin', 'Department Head', 'Department Admin']:
         return jsonify({"response": None}), 404
