@@ -179,17 +179,22 @@ def faculty_not_in_department(collegeDoc_id, department_name):
 @app.route("/update-faculty-departmentlist/<type>/<collegeDoc_id>/<department_name>/<faculty_id>")
 def update_faculty_departmentlist(type, collegeDoc_id, department_name, faculty_id):
     doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
+    user_ref = db.collection(f"Users/{doc_ref.get().to_dict().get("UserID")}/UserColleges").document(collegeDoc_id)
     if type == "Add":
-        doc_ref.update({
+        update = {
             "DepartmentList": firestore.ArrayUnion([department_name]),
             f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayUnion([""])
-        })
+        }
+        doc_ref.update(update)
+        user_ref.update(update)
         return {"Response": "Added"}, 200
     elif type == "Remove":
-        doc_ref.update({
+        update = {
             "DepartmentList": firestore.ArrayRemove([department_name]),
             f"ClassList.{department_name.replace(' ', '_')}": firestore.DELETE_FIELD
-        })
+        }
+        doc_ref.update(update)
+        user_ref.update(update)
         return {"Response": "Removed"}, 200
 
 @app.route("/faculty-not-in-class/<collegeDoc_id>/<department_name>/<class_name>")
@@ -209,15 +214,21 @@ def faculty_not_in_class(collegeDoc_id, department_name, class_name):
 @app.route("/update-faculty-classlist/<type>/<collegeDoc_id>/<department_name>/<class_name>/<faculty_id>")
 def update_faculty_classlist(type, collegeDoc_id, department_name, class_name, faculty_id):
     doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
+    user_ref = db.collection(f"Users/{doc_ref.get().to_dict().get("UserID")}/UserColleges").document(collegeDoc_id)
+    
     if type == "Add":
-        doc_ref.update({
+        update = {
             f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayUnion([class_name])
-        })
+        }
+        doc_ref.update(update)
+        user_ref.update(update)
         return {"Response": "Added"}, 200
     elif type == "Remove":
-        doc_ref.update({
+        update = {
             f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayRemove([class_name])
-        })
+        }
+        doc_ref.update(update)
+        user_ref.update(update)
         return {"Response": "Removed"}, 200
         
 # @app.route("/college-login/<collegeDoc_id>/<userDoc_id>/<student_or_faculty>/<identity_id>")
@@ -654,22 +665,32 @@ def add_faculty(collegeDoc_id, full_name, college_email, identity_id, default_pa
 def add_department(collegeDoc_id, department_name, abbreviation, field_of_study, department_head_id, study_level, format, userDoc_id, delete_prev):
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin']:
         return jsonify({"response": None}), 404
-    
+    deps = doc = db.collection(f'Colleges/{collegeDoc_id}/Departments')
     if delete_prev == "True":
         old_department_name = request.args.get('old_department_name')
-        db.collection(f'Colleges/{collegeDoc_id}/Departments').document(old_department_name).delete()
+        deps.document(old_department_name)
+        update_faculty_departmentlist("Remove",collegeDoc_id, department_name, doc.get().to_dict().get("DepartmentHeadID"))
+        doc.delete()
     else:
         query = (
-        db.collection(f'Colleges/{collegeDoc_id}/Departments')
+        deps
             .where("DepartmentName", "==", department_name)
             .stream()
         )
     
         if any(query):  # Convert stream to list to evaluate results
             return jsonify({"response": False}), 200
-    hod_ref = db.collection(f'Colleges/{collegeDoc_id}/Faculty').document(department_head_id)
+        
+    fac_docs = db.collection(f'Colleges/{collegeDoc_id}/Faculty')
+    for fac_doc in fac_docs.stream():
+        ['Main College Head','College Head','College Admin']
+        if any(role in fac_doc.get().to_dict().get("Authority") for role in ['Main College Head','College Head','College Admin']):
+            update_faculty_departmentlist("Add", collegeDoc_id, department_name, fac_doc.get().to_dict().get("IdentityID",[]))
+            
+    hod_ref = fac_docs.document(department_head_id)
     update_faculty_departmentlist("Add", collegeDoc_id, department_name, department_head_id)
     dep_docs = readCollegeCollections(f'Departments,{department_name},Classes',collegeDoc_id, userDoc_id)
+    
     for dep in dep_docs:
         update_faculty_classlist("Add", collegeDoc_id, department_name, dep.get('ClassName'), department_head_id)
     createFire(f'Colleges/{collegeDoc_id}/Departments',{
@@ -691,12 +712,15 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, 
     if db.collection(f'Users/{userDoc_id}/UserColleges').document(collegeDoc_id).get().to_dict().get('Authority') not in ['Main College Head','College Head','College Admin', 'Department Head', 'Department Admin']:
         return jsonify({"response": None}), 404
     
+    classes_doc = db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes')
     if delete_prev == "True":
         old_class_name = request.args.get('old_class_name')
-        db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes').document(old_class_name).delete()
+        doc = classes_doc.document(old_class_name)
+        update_faculty_classlist("Remove", collegeDoc_id, department_name, class_name, doc.get().to_dict().get("ClassCoordinatorID"))
+        doc.delete()
     else:
         query = (
-        db.collection(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes')
+        classes_doc
             .where("ClassName", "==", class_name)
             .stream()
         )
@@ -706,7 +730,14 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, 
         
     if ',' in courses: courses = courses.split(',')
     else: courses = [courses]
-    cc_ref = db.collection(f'Colleges/{collegeDoc_id}/Faculty').document(class_coordinator_id)
+    
+    fac_docs = db.collection(f'Colleges/{collegeDoc_id}/Faculty')
+    for fac_doc in fac_docs.stream():
+        ['Main College Head','College Head','College Admin']
+        if any(role in fac_doc.get().to_dict().get("Authority") for role in ['Main College Head','College Head','College Admin']):
+            update_faculty_classlist("Add", collegeDoc_id, department_name, class_name, fac_doc.get().to_dict().get("IdentityID",[]))
+            
+    cc_ref = fac_docs.document(class_coordinator_id)
     update_faculty_departmentlist("Add", collegeDoc_id, department_name, class_coordinator_id)
     update_faculty_classlist("Add", collegeDoc_id, department_name, class_name, class_coordinator_id)
     createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes',{
@@ -717,7 +748,6 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, 
         "Courses": courses,
         "Format": format,
         "Year/Semester": year_or_semester,
-        
         }, class_name)
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes").stream()]}), 200
