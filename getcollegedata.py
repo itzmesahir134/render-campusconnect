@@ -809,7 +809,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
 def get_classes(collegeDoc_id, department_name, identityID, user_type):
     if department_name == "": return [], 200
     if user_type == "Student": user_type = "Students"
-    return db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identityID).get().to_dict().get('ClassList').get(department_name), 200
+    return db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identityID).get().to_dict().get('ClassList').get(department_name.replace(' ','_')), 200
     
     
 
