@@ -179,7 +179,7 @@ def faculty_not_in_department(collegeDoc_id, department_name):
 @app.route("/update-faculty-departmentlist/<type>/<collegeDoc_id>/<department_name>/<faculty_id>")
 def update_faculty_departmentlist(type, collegeDoc_id, department_name, faculty_id):
     doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
-    user_ref = db.collection(f"Users/{doc_ref.get().to_dict().get("UserID")}/UserColleges").document(collegeDoc_id)
+    user_ref = db.collection(f"Users/{doc_ref.get().to_dict().get('UserID')}/UserColleges").document(collegeDoc_id)
     if type == "Add":
         update = {
             "DepartmentList": firestore.ArrayUnion([department_name]),
@@ -214,7 +214,7 @@ def faculty_not_in_class(collegeDoc_id, department_name, class_name):
 @app.route("/update-faculty-classlist/<type>/<collegeDoc_id>/<department_name>/<class_name>/<faculty_id>")
 def update_faculty_classlist(type, collegeDoc_id, department_name, class_name, faculty_id):
     doc_ref = db.collection(f"Colleges/{collegeDoc_id}/Faculty").document(faculty_id)
-    user_ref = db.collection(f"Users/{doc_ref.get().to_dict().get("UserID")}/UserColleges").document(collegeDoc_id)
+    user_ref = db.collection(f"Users/{doc_ref.get().to_dict().get('UserID')}/UserColleges").document(collegeDoc_id)
     
     if type == "Add":
         update = {
