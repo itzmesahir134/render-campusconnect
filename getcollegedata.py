@@ -805,7 +805,7 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
 
-@app.route("/get-classes/<collegeDoc_id>/<deprtment_name>/<identityID>/<user_type>")
+@app.route("/get-classes/<collegeDoc_id>/<department_name>/<identityID>/<user_type>")
 def get_classes(collegeDoc_id, department_name, identityID, user_type):
     if department_name == "": return [], 200
     if user_type == "Student": user_type = "Students"
