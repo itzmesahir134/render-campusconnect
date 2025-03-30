@@ -837,11 +837,10 @@ def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, defaul
 
 
 #CHAT AREA
-@app.route("/create-chat/<type>/<member_list>/<member_profiles>/<member_refs>")
-def create_dm(type, member_list, member_profiles, member_refs):
+@app.route("/create-chat/<type>/<member_list>/<member_refs>")
+def create_dm(type, member_list, member_refs):
     
     member_list = member_list.split(',')
-    member_profiles = member_profiles.replace('@','/').split(',')
     member_refs = member_refs.split(',')
     
     query = (
@@ -856,7 +855,6 @@ def create_dm(type, member_list, member_profiles, member_refs):
     
     chatDoc = createFire('Chats',{
         "Members": member_list,
-        "MemberProfiles": member_profiles,
         "MemberUserRef": member_refs
     })
     chatDoc.update({
