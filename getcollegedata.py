@@ -850,7 +850,7 @@ def create_dm(type, member_list, member_refs):
     )
 
     # Check if any documents exist
-    if type == "Personal" and any(userIDs for userIDs in query.get().to_dict().get("MemberUserRef") if set(userIDs) == set(member_refs)):
+    if type == "Personal" and any(userIDs for userIDs in query if set(userIDs.get().to_dict().get("MemberUserRef")) == set(member_refs)):
         return jsonify({"response": False}), 200
     
     chatDoc = createFire('Chats',{
