@@ -841,7 +841,7 @@ def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, defaul
 def create_dm(type, member_list, member_profiles, member_refs):
     
     member_list = member_list.split(',')
-    member_profiles = member_profiles.split(',')
+    member_profiles = [img.replace('#','/') for img in member_profiles.split(',') ]
     member_refs = member_refs.split(',')
     
     query = (
