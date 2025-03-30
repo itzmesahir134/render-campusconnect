@@ -684,7 +684,7 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
     fac_docs = db.collection(f'Colleges/{collegeDoc_id}/Faculty')
     for fac_doc in fac_docs.stream():
         ['Main College Head','College Head','College Admin']
-        if any(role in fac_doc.get().to_dict().get("Authority") for role in ['Main College Head','College Head','College Admin']):
+        if fac_doc.get().to_dict().get("Authority") in ['Main College Head','College Head','College Admin']:
             update_faculty_departmentlist("Add", collegeDoc_id, department_name, fac_doc.get().to_dict().get("IdentityID",[]))
             
     hod_ref = fac_docs.document(department_head_id)
@@ -733,8 +733,7 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, 
     
     fac_docs = db.collection(f'Colleges/{collegeDoc_id}/Faculty')
     for fac_doc in fac_docs.stream():
-        ['Main College Head','College Head','College Admin']
-        if any(role in fac_doc.get().to_dict().get("Authority") for role in ['Main College Head','College Head','College Admin']):
+        if fac_doc.get().to_dict().get("Authority") in ['Main College Head','College Head','College Admin']:
             update_faculty_classlist("Add", collegeDoc_id, department_name, class_name, fac_doc.get().to_dict().get("IdentityID",[]))
             
     cc_ref = fac_docs.document(class_coordinator_id)
@@ -810,8 +809,7 @@ def get_classes(collegeDoc_id, department_name, identityID, user_type):
     if department_name == "": return [], 200
     if user_type == "Student": user_type = "Students"
     return db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identityID).get().to_dict().get('ClassList').get(department_name.replace(' ','_')), 200
-    
-    
+
 
 @app.route("/reset-default/<collegeDoc_id>/<default_password>/<identity_id>/<userDoc_id>")
 def resetToDefaultPass(collegeDoc_id, default_password, identity_id, userDoc_id):
@@ -836,6 +834,36 @@ def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, defaul
         "Password": default_password
         }, identity_id)
     return jsonify({"response": True}), 200
+
+
+#CHAT AREA
+@app.route("/create-chat/<type>/<member_list>/<member_profiles>/<member_refs>")
+def create_dm(type, member_list, member_profiles, member_refs):
+    
+    member_list = member_list.split(',')
+    member_profiles = member_profiles.split(',')
+    member_refs = member_refs.split(',')
+    
+    query = (
+    db.collection("Colleges")
+        .where("MemberUserRef", "array_contains", member_refs[0])
+        .stream()
+    )
+
+    # Check if any documents exist
+    if type == "Personal" and any(userIDs for userIDs in query.get().to_dict().get("MemberUserRef") if set(userIDs) == set(member_refs)):
+        
+        return jsonify({"response": False}), 200
+    
+    chatID = createFire('Chats',{
+        "Members": member_list,
+        "MemberProfiles": member_profiles,
+        "MemberUserRef": member_refs
+    })
+    
+    return jsonify({"response": False, "chatID": chatID}), 200
+
+#UPLOAD ARE
 
 
 @app.route("/upload/CSV", methods=['POST'])
