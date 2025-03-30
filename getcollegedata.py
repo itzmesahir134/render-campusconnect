@@ -844,13 +844,13 @@ def create_dm(type, member_list, member_refs):
     member_refs = member_refs.split(',')
     
     query = (
-    db.collection("Colleges")
+    db.collection("Chats")
         .where("MemberUserRef", "array_contains", member_refs[0])
         .stream()
     )
 
     # Check if any documents exist
-    if type == "Personal" and any(userIDs for userIDs in query if set(userIDs.get().to_dict().get("MemberUserRef")) == set(member_refs)):
+    if type == "Personal" and any(set(chat_doc.to_dict().get("MemberUserRef",[])) == set(member_refs) for chat_doc in query ):
         return jsonify({"response": False}), 200
     
     chatDoc = createFire('Chats',{
@@ -861,7 +861,7 @@ def create_dm(type, member_list, member_refs):
         "ChatID": chatDoc.id
     })
     
-    return jsonify({"response": True, "chatID": chatDoc.id}), 200
+    return jsonify({"response": False, "chatID": chatDoc.id}), 200
 
 #UPLOAD ARE
 
