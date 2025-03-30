@@ -859,7 +859,7 @@ def create_dm(type, member_list, member_refs):
     })
     chatDoc.update({
         "ChatID": chatDoc.id
-    }, chatDoc.id)
+    })
     
     return jsonify({"response": False, "chatID": chatDoc.id}), 200
 
