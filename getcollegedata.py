@@ -270,10 +270,11 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                 return jsonify({"response": True,"collegeInfo": collegeDoc_id}), 200
         else:
             if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
-                Name = db.collection(f"Users").document(userDoc_id).get().to_dict().get('full_name')
+                user_ref = db.collection(f"Users").document(userDoc_id)
+                Name = user_ref.get().to_dict().get('full_name')
                 createFire(f"Colleges/{collegeDoc_id}/{user_type}",{
                     "UserID": userDoc_id,
-                    "UserDocID": userDoc_id,
+                    "UserDocRef": user_ref,
                     "Password": password,
                     "LoggedIn": True,
                     "Name": Name
@@ -283,7 +284,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     student_ref = find_student_document(identity_id, collegeDoc_id)
                     student_ref.set({
                         "UserID": userDoc_id,
-                        "UserDocID": userDoc_id,
+                        "UserDocID": user_ref,
                         "Password": password,
                         "LoggedIn": True
                         }, merge=True)
@@ -508,7 +509,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
         "Name": data.get("full_name"),
         "Authority": "Main College Head",
         "Roles": ["Main College Head"],
-        "UserDocID": userDoc_id,
+        #"UserDocID": userDoc_id,
         "UserID": data.get('uid'),
         "CollegeEmail": college_email,
         "CollegeDomain": college_email.split('@')[1],
@@ -530,7 +531,7 @@ def create_college(college_email, password, identity_id, college_name, state, us
     createFire(f'Colleges/{college_ref.id}/Faculty', {
         "UserType": "Faculty",
         "Name": data.get("full_name"),
-        "UserDocID": userDoc_id,
+        "UserDocID": db.collection('Users').document(userDoc_id),
         "UserID": data.get('uid'),
         "DefaultPassword": password,
         "Password": password,
@@ -837,25 +838,28 @@ def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, defaul
 
 
 #CHAT AREA
-@app.route("/create-chat/<type>/<member_list>/<member_refs>")
-def create_dm(type, member_list, member_refs):
+@app.route("/create-chat/<type>/<member_list>/<member_ids>")
+def create_dm(type, member_list, member_ids):
     
     member_list = member_list.split(',')
-    member_refs = member_refs.split(',')
+    member_ids = member_ids.split(',')
     
     query = (
     db.collection("Chats")
-        .where("MemberUserRef", "array_contains", member_refs[0])
+        .where("MemberIDs", "array_contains", member_ids[0])
         .stream()
     )
 
     # Check if any documents exist
-    if type == "Personal" and any(set(chat_doc.to_dict().get("MemberUserRef",[])) == set(member_refs) for chat_doc in query ):
+    if type == "Personal" and any(set(chat_doc.to_dict().get("MemberIDs",[])) == set(member_ids) for chat_doc in query ):
         return jsonify({"response": False}), 200
     
+    refsList = [db.collection("Users").document(mem_id) for mem_id in member_ids]
     chatDoc = createFire('Chats',{
         "Members": member_list,
-        "MemberUserRef": [db.collection("Users").document(mem_id) for mem_id in member_refs]
+        "MemberProfiles": [ref.get().to_dict().get('photo_url') for ref in refsList],
+        "MemberUserRef": refsList,
+        "MemberIDs": member_ids
     })
     chatDoc.update({
         "ChatID": chatDoc.id
