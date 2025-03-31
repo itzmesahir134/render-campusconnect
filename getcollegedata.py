@@ -977,17 +977,25 @@ def upload_to_supabase():
     if not folder_path or not files:
         return jsonify({"error": "Missing folder path or files"}), 400
 
+    video_indexes = []  # To store indexes where videos are found
     uploaded_urls = []
 
-    for file in files:
+    for index, file in enumerate(files):
         try:
+            # Get content type of the file
+            content_type = file.content_type
+
+            # Check if the file is a video
+            if content_type.startswith('video/'):
+                video_indexes.append(index)
+
             # Read file content as bytes
             file_bytes = file.read()
 
             # Upload the file to Supabase storage
             file_path = f"{folder_path}/{file.filename}"
             res = supabase.storage.from_(BUCKET_NAME).upload(
-                file_path, file_bytes, {'content-type': file.content_type}
+                file_path, file_bytes, {'content-type': content_type}
             )
 
             # Get public URL
@@ -997,7 +1005,11 @@ def upload_to_supabase():
         except Exception as e:
             return jsonify({"error": f"Failed to upload {file.filename}", "details": str(e)}), 500
 
-    return jsonify({"uploaded_urls": uploaded_urls}), 200
+    return jsonify({
+        "uploaded_urls": uploaded_urls,
+        "video_indexes": video_indexes
+    }), 200
+
 
 
 if __name__ == '__main__':
