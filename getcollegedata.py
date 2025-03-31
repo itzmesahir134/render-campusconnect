@@ -855,7 +855,7 @@ def create_dm(type, member_list, member_refs):
     
     chatDoc = createFire('Chats',{
         "Members": member_list,
-        "MemberUserRef": member_refs
+        "MemberUserRef": [db.collection("Users").document(mem_id) for mem_id in member_refs]
     })
     chatDoc.update({
         "ChatID": chatDoc.id
