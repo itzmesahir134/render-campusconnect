@@ -1,3 +1,4 @@
+import datetime
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -849,22 +850,35 @@ def create_dm(type, member_list, member_ids):
         .where("MemberIDs", "array_contains", member_ids[0])
         .stream()
     )
-
-    # Check if any documents exist
-    if type == "Personal" and any(set(chat_doc.to_dict().get("MemberIDs",[])) == set(member_ids) for chat_doc in query ):
-        return jsonify({"response": False}), 200
-    
     refsList = [db.collection("Users").document(mem_id) for mem_id in member_ids]
+    
+    # Check if any documents exist
+    if type == "Personal":
+        if any(set(chat_doc.to_dict().get("MemberIDs",[])) == set(member_ids) for chat_doc in query ):
+            return jsonify({"response": False}), 200
+        
     chatDoc = createFire('Chats',{
+        "type": type,
         "Members": member_list,
         "MemberProfiles": [ref.get().to_dict().get('photo_url') for ref in refsList],
         "MemberUserRef": refsList,
-        "MemberIDs": member_ids
+        "MemberIDs": member_ids,
+        "last_message": "Say Hello!",
+        "last_message_time": datetime.datetime.now(),
+        "important": False,
     })
-    chatDoc.update({
-        "ChatID": chatDoc.id
-    })
-    
+    if type == "Group":
+        chatDoc.update({
+            "GroupName": request.args.get('GroupName'),
+            "GroupDescription": request.args.get('GroupDescription'),
+            "GroupImage": request.args.get('GroupImage'),
+            "ChatID": chatDoc.id
+            })
+    elif type == "Personal":
+        chatDoc.update({
+            "ChatID": chatDoc.id
+        })
+        
     return jsonify({"response": True, "chatID": chatDoc.id}), 200
 
 #UPLOAD ARE
