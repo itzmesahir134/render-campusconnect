@@ -1157,8 +1157,6 @@ def edit_default_profile(p_ID,user_class,p_bio,college_name,college_semORyr,disp
     pPhoto={
         "photo_type":photo_type,
         "photo_url": photo_url,
-        "profile_type":p_type,
-        "banner_type":b_type,
         "profile_url":p_url,
         "banner_url":b_url
     }
