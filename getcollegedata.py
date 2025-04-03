@@ -11,6 +11,7 @@ import random
 import ssl
 import threading
 import time
+import uuid
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
