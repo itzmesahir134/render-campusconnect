@@ -1136,6 +1136,15 @@ def create_default_profile(p_ID):
     
     return jsonify({"p_text":pText, "p_photo":pPhoto }),200
 
+@app.route("/edit-profile-Name/<p_ID>/<display_name>/<bio>", methods=["GET"])
+def edit_Name_bio(p_ID,display_name,bio):
+    pText={
+        "display_name":display_name,
+        "bio":bio
+    }
+    createFire(f"Users/{p_ID}/Profile",pText,"p_text")
+    return jsonify({"p_text":pText, }),200
+
 #Edit Profile  
 @app.route("/edit-default-profile/<p_ID>/<display_name>/<uid>/<user_class>/<p_bio>/<college_name>/<college_semORyr>/<photo_url>/<posts>", methods=["GET"])
 #@app.route("/edit-default-profile/<p_ID>/<display_name>/<email>/<uid>/<p_phone>/<user_class>/<p_bio>", methods=["GET"])
