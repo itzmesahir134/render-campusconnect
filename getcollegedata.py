@@ -845,7 +845,10 @@ def create_dm(type, member_list, member_ids):
     
     member_list = member_list.split(',')
     member_ids = member_ids.split(',')
-    
+    if request.args.get('DocID'):
+        docID = request.args.get('DocID')
+    else:
+        docID = False
     query = (
     db.collection("Chats")
         .where("MemberIDs", "array_contains", member_ids[0])
@@ -867,7 +870,7 @@ def create_dm(type, member_list, member_ids):
         "last_message": "Say Hello!",
         "last_message_time": datetime.datetime.now(),
         "important": False,
-    })
+    }, docID)
     if type == "Group":
         chatDoc.update({
             "GroupName": request.args.get('GroupName'),
@@ -997,18 +1000,22 @@ def upload_to_supabase():
 
     for index, file in enumerate(files):
         try:
-            # Get content type of the file
             content_type = file.content_type
-
-            # Check if the file is a video
             if content_type.startswith('video/'):
                 video_indexes.append(index)
+
+            file_path = f"{folder_path}/{file.filename}"
+
+            # Check if the file already exists
+            existing_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path)
+            if existing_url:
+                uploaded_urls.append(existing_url)
+                continue  # Skip re-upload
 
             # Read file content as bytes
             file_bytes = file.read()
 
             # Upload the file to Supabase storage
-            file_path = f"{folder_path}/{file.filename}"
             res = supabase.storage.from_(BUCKET_NAME).upload(
                 file_path, file_bytes, {'content-type': content_type}
             )
@@ -1020,10 +1027,7 @@ def upload_to_supabase():
         except Exception as e:
             return jsonify({"error": f"Failed to upload {file.filename}", "details": str(e)}), 500
 
-    return jsonify({
-        "uploaded_urls": uploaded_urls,
-        "video_indexes": video_indexes
-    }), 200
+    return jsonify({"uploaded_urls": uploaded_urls, "video_indexes": video_indexes}), 200
 
 
 
