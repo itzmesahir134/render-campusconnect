@@ -995,7 +995,7 @@ def upload_to_supabase():
     if not folder_path or not files:
         return jsonify({"error": "Missing folder path or files"}), 400
 
-    video_indexes = []  # To store indexes where videos are found
+    video_indexes = []
     uploaded_urls = []
 
     for index, file in enumerate(files):
@@ -1006,28 +1006,38 @@ def upload_to_supabase():
 
             file_path = f"{folder_path}/{file.filename}"
 
-            # Check if the file already exists
-            existing_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path)
-            if existing_url:
-                uploaded_urls.append(existing_url)
-                continue  # Skip re-upload
+            # Check if file exists by listing files in the folder
+            existing_files = supabase.storage.from_(BUCKET_NAME).list(folder_path)
+            file_exists = any(obj['name'] == file.filename for obj in existing_files)
+
+            if file_exists:
+                # File already exists, use existing public URL
+                public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path)
+                uploaded_urls.append(public_url)
+                continue
 
             # Read file content as bytes
             file_bytes = file.read()
 
-            # Upload the file to Supabase storage
-            res = supabase.storage.from_(BUCKET_NAME).upload(
+            # Upload the file
+            supabase.storage.from_(BUCKET_NAME).upload(
                 file_path, file_bytes, {'content-type': content_type}
             )
 
-            # Get public URL
             public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path)
             uploaded_urls.append(public_url)
 
         except Exception as e:
-            return jsonify({"error": f"Failed to upload {file.filename}", "details": str(e)}), 500
+            return jsonify({
+                "error": f"Failed to upload {file.filename}",
+                "details": str(e)
+            }), 500
 
-    return jsonify({"uploaded_urls": uploaded_urls, "video_indexes": video_indexes}), 200
+    return jsonify({
+        "uploaded_urls": uploaded_urls,
+        "video_indexes": video_indexes
+    }), 200
+
 
 
 
