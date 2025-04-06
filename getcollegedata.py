@@ -375,11 +375,15 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
 
 @app.route("/get-all-students/<collegeDoc_id>")
 def get_all_students(collegeDoc_id):
-    return jsonify({"response": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream()]}), 200
+    docs = [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream() if doc.to_dict().get('LoggedIn')]
+    if any(docs):
+        return jsonify({"response": True, "documents": docs}), 200
+    else:
+        return jsonify({"response": False}), 200
 
 @app.route("/get-all-faculty/<collegeDoc_id>")
 def get_all_faculty(collegeDoc_id):
-    return jsonify({"response": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream()]}), 200
+    return jsonify({"response": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream() if doc.to_dict().get('LoggedIn')]}), 200
     
 @app.route("/find-faculty-authority/<authority>/<collegeDoc_id>")
 def find_faculty_Authority(authority, collegeDoc_id):
