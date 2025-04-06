@@ -891,7 +891,7 @@ def create_dm(type, member_list, member_ids):
             "ChatID": chatDoc.id
         })
         
-    return jsonify({"response": True, "chatID": chatDoc.id}), 200
+    return jsonify({"response": True, "chatID": chatDoc.id, "chatDocRef": chatDoc}), 200
 
 #UPLOAD ARE
 
