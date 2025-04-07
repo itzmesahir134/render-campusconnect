@@ -245,6 +245,7 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     collegeDoc_id = None
     for doc in college_query:
         collegeDoc_id = doc.id  # Get document ID
+        collegeRef = doc.to_dict()
         break
     if user_type == "Student": user_type = "Students"
     college_user_ref = db.collection(f"Colleges/{collegeDoc_id}/{user_type}").document(identity_id)  # Reference to document
@@ -263,9 +264,11 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     "Roles":  user_data.get('Roles'),
                     "Keywords": find_all_possible_strings(college_name),
                     "DepartmentList": user_data.get("DepartmentList"),
-                    "ClassList": user_data.get("ClassList")
+                    "ClassList": user_data.get("ClassList"),
+                    "CollegeLogo": user_data.get("CollegeLogo")
                     
                     }, collegeDoc_id)
+        
         if user_data.get('LoggedIn'):
             if user_data.get('Password') == password and user_data.get('CollegeEmail') == college_email:
                 
@@ -279,16 +282,23 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     "UserDocRef": user_ref,
                     "Password": password,
                     "LoggedIn": True,
-                    "Name": Name
+                    "Name": Name,
+                    "photo_url": user_ref.get().to_dict().get('photo_url'),
                     },identity_id)
                 
+                if collegeRef.get('GlobalChat'):
+                    db.collection('Chats').document(collegeRef.get('GlobalChatRef')).update({
+                        "Members": firestore.ArrayUnion([Name]),
+                        "UserID": firestore.ArrayUnion([userDoc_id]),
+                    })
                 if user_type == "Student":
                     student_ref = find_student_document(identity_id, collegeDoc_id)
                     student_ref.set({
                         "UserID": userDoc_id,
                         "UserDocID": user_ref,
                         "Password": password,
-                        "LoggedIn": True
+                        "LoggedIn": True,
+                        "photo_url": user_ref.get().to_dict().get('photo_url'), 
                         }, merge=True)
                     
                 return jsonify({"response": False,"collegeInfo": collegeDoc_id}), 200
