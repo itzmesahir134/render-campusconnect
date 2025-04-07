@@ -277,21 +277,29 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
             if user_data.get('DefaultPassword') == password and user_data.get('CollegeEmail') == college_email:
                 user_ref = db.collection(f"Users").document(userDoc_id)
                 Name = user_ref.get().to_dict().get('full_name')
+                photo_url = user_ref.get().to_dict().get('photo_url')
                 createFire(f"Colleges/{collegeDoc_id}/{user_type}",{
                     "UserID": userDoc_id,
                     "UserDocRef": user_ref,
                     "Password": password,
                     "LoggedIn": True,
                     "Name": Name,
-                    "photo_url": user_ref.get().to_dict().get('photo_url'),
+                    "photo_url": photo_url,
                     },identity_id)
                 
+                print(collegeRef.get('GlobalChat'))
                 if collegeRef.get('GlobalChat'):
-                    db.collection('Chats').document(collegeRef.get('GlobalChatRef')).update({
+                    print('Adding to global chat')
+                    ref = db.collection('Chats').document(collegeRef.get('GlobalChatID'))
+                    ref.update({
                         "Members": firestore.ArrayUnion([Name]),
-                        "UserID": firestore.ArrayUnion([userDoc_id]),
+                        "MemberIDs": firestore.ArrayUnion([userDoc_id]),
+                        "MemberProfiles": firestore.ArrayUnion([photo_url]),
+                        "MemberUserRef": firestore.ArrayUnion([user_ref]),
                     })
-                if user_type == "Student":
+                print(user_type)
+                if user_type == "Students":
+                    print('Updateing student')
                     student_ref = find_student_document(identity_id, collegeDoc_id)
                     student_ref.set({
                         "UserID": userDoc_id,
