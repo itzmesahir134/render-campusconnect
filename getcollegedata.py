@@ -1180,14 +1180,54 @@ def create_default_profile(p_ID):
     
     return jsonify({"p_text":pText, "p_photo":pPhoto }),200
 
-@app.route("/edit-profile-Name/<p_ID>/<display_name>/<bio>", methods=["GET"])
-def edit_Name_bio(p_ID,display_name,bio):
+@app.route("/edit-profile-Name/<p_ID>/<bio>", methods=["GET"])
+def edit_Name_bio(p_ID,bio):
     pText={
-        "display_name":display_name,
         "bio":bio
     }
     createFire(f"Users/{p_ID}/Profile",pText,"p_text")
     return jsonify({"p_text":pText, }),200
+
+
+def create(doc_path, data):
+    doc_ref = db.document(doc_path)  # 👈 Correct: doc path like "Users/<user_ID>"
+    doc_ref.update(data)             # 👈 Updates fields like display_name, email etc.
+
+@app.route("/edit-Name/<p_ID>/<display_name>", methods=["GET"])
+def edit_Name(p_ID, display_name):
+    # Update display_name in Users collection
+    main_data = {
+        "display_name": display_name
+    }
+    create(f"Users/{p_ID}", main_data)
+
+    # Update display_name in Profile/p_text document
+    profile_data = {
+        "display_name": display_name
+    }
+    createFire(f"Users/{p_ID}/Profile", profile_data, "p_text")
+
+    return jsonify({"message": "Display name updated", "p_text": profile_data}), 200
+
+
+
+@app.route("/edit-ProfileImage/<p_ID>", methods=["GET"])
+def edit_ProfileImage(p_ID):
+    photo_url = request.args.get("link")
+    if not photo_url:
+        return jsonify({"error": "Missing 'link' parameter"}), 400
+
+    p = {
+        "photo_url": photo_url
+    }
+    create(f"Users/{p_ID}", p)
+    profile_photo = {
+        "photo_type": True,
+        "profile_url": photo_url
+    }
+    createFire(f"Users/{p_ID}/Profile", profile_photo, "p_photo")
+    return jsonify({"p_text": p}), 200
+
 
 #Edit Profile  
 @app.route("/edit-default-profile/<p_ID>/<display_name>/<uid>/<user_class>/<p_bio>/<college_name>/<college_semORyr>/<photo_url>/<posts>", methods=["GET"])
