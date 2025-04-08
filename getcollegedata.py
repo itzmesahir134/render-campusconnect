@@ -902,11 +902,15 @@ def create_dm(type, member_list, member_ids):
         "important": False,
     }, docID)
     if type == "Group":
+        if request.args.get('collegeInfo'):  
+            collegeInfo = request.args.get("collegeInfo")
+        else: collegeInfo = "null"
         chatDoc.update({
             "GroupName": request.args.get('GroupName'),
             "GroupDescription": request.args.get('GroupDescription'),
             "GroupImage": request.args.get('GroupImage'),
-            "ChatID": chatDoc.id
+            "ChatID": chatDoc.id,
+            "collegeInfo": collegeInfo,
             })
     elif type == "Personal":
         chatDoc.update({
