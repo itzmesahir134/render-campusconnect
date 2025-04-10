@@ -389,7 +389,7 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
             way = '/'.join(path)
             docs = db.collection(f"Colleges/{collegeDoc_id}/{way}").stream()
             
-            return [doc.to_dict() for doc in docs]
+            return [{**serialize_firestore_data(doc.to_dict())} for doc in docs]
         else:
             docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
             filterList = filter_by_authority(authorities, userAuthority)
@@ -403,7 +403,8 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
                 return remove_items_by_roles(removeRef, filterList)
             elif collection_name == "Roles":
                 return [doc.to_dict() for doc in docs if doc.to_dict().get("Authority") in filterList]
-            return [doc.to_dict() for doc in docs]
+            
+            return [{**serialize_firestore_data(doc.to_dict())} for doc in docs]
     else: 
         return jsonify({"response": "No Authorization"})
 
