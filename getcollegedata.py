@@ -394,7 +394,13 @@ def readCollegeCollections(collection_name, collegeDoc_id, userDoc_id):
             docs = db.collection(f"Colleges/{collegeDoc_id}/{collection_name}").stream()
             filterList = filter_by_authority(authorities, userAuthority)
             if collection_name == "Faculty":
-                return remove_items_by_roles([doc.to_dict() for doc in docs], filterList)
+                removeRef = [
+                    {
+                        **serialize_firestore_data(doc.to_dict())
+                    }
+                    for doc in docs
+                ]
+                return remove_items_by_roles(removeRef, filterList)
             elif collection_name == "Roles":
                 return [doc.to_dict() for doc in docs if doc.to_dict().get("Authority") in filterList]
             return [doc.to_dict() for doc in docs]
@@ -849,7 +855,6 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
 
     students = [
         {
-            "id": doc.id,
             **serialize_firestore_data(doc.to_dict())
         }
         for doc in db.collection(
