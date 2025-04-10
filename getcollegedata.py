@@ -124,6 +124,16 @@ def createFire(collection_path, data, documentName=False):
     doc_ref.set(data, merge=True)
     return doc_ref
 
+def serialize_firestore_data(data):
+    if isinstance(data, dict):
+        return {k: serialize_firestore_data(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [serialize_firestore_data(v) for v in data]
+    elif hasattr(data, 'path'):  # likely a DocumentReference
+        return str(data.path)
+    else:
+        return data
+
 def find_student_document(student_id, collegeDoc_id):
     departments_ref = db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()
 
@@ -835,7 +845,19 @@ def add_student(collegeDoc_id, department_name, class_name, student_name, studen
     createFire(f'Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students', student_data, student_id)
     createFire(f'Colleges/{collegeDoc_id}/Students',student_data, student_id)
     
-    return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
+    # return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students").stream()]}), 200
+
+    students = [
+        {
+            "id": doc.id,
+            **serialize_firestore_data(doc.to_dict())
+        }
+        for doc in db.collection(
+            f"Colleges/{collegeDoc_id}/Departments/{department_name}/Classes/{class_name}/Students"
+        ).stream()
+    ]
+
+    return jsonify({"response": True, "data": students}), 200
 
 @app.route("/get-classes/<collegeDoc_id>/<department_name>/<identityID>/<user_type>")
 def get_classes(collegeDoc_id, department_name, identityID, user_type):
