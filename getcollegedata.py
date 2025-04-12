@@ -1533,9 +1533,11 @@ def fetch_link(p_ID):
     return jsonify({"links": links}), 200
 
 
-@app.route('/create-form', methods=['GET'])
-def createForm():
-    user_id = request.args.get('user_id')
+@app.route('/create-form/<user_id>', methods=['GET'])
+def createForm(user_id):
+    # user_id = request.args.get('user_id')
+    if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
     form_id = str(uuid.uuid4())
 
     form_doc = {
@@ -1809,10 +1811,10 @@ def delete_form_field(form_id, field_id):
     
     return jsonify({"message": "Field deleted successfully", "fields": updated_fields}), 200
 
-@app.route('/create-activity', methods=['GET'])
-def create_activity():
+@app.route('/create-activity/<user_id>', methods=['GET'])
+def create_activity(user_id):
     try:
-        user_id = request.args.get("user_id")
+        # user_id = request.args.get("user_id")
         form_id = request.args.get("form_id", "")
         activity_title = request.args.get("activity_title", "New Activity")
         activity_desc = request.args.get("activity_desc", "Description here")
