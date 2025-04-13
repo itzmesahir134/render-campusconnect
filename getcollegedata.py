@@ -3,6 +3,7 @@ import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
+from flask_cors import CORS  # Added CORS support
 import pandas as pd
 import io
 from supabase import create_client, Client
@@ -16,6 +17,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend access
 
 otp_storage = {}
 # Email Configuration
