@@ -1534,6 +1534,24 @@ def fetch_link(p_ID):
         links.update(doc.to_dict())  # Merge all documents
     return jsonify({"links": links}), 200
 
+@app.route('/get-Post/<p_ID>', methods=['GET'])
+def get_post(p_ID):
+    try:
+        # Access 'Posts' subcollection for user with ID = p_ID
+        posts_ref = db.collection('Users').document(p_ID).collection('Posts')
+        docs = posts_ref.stream()
+
+        posts = []
+        for doc in docs:
+            data = doc.to_dict()
+            data['post_id'] = doc.id  # Add the document ID
+            posts.append(data)
+
+        return jsonify({'posts': posts}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch posts: {str(e)}'}), 500
+
 
 @app.route('/create-form/<user_id>', methods=['GET'])
 def createForm(user_id):
