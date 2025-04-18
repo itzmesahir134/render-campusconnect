@@ -1895,33 +1895,9 @@ def update_activity(user_id, activity_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-SUPABASE_URL = "https://jgaapanxbjpbduxamlgf.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnYWFwYW54YmpwYmR1eGFtbGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMTY5OTYsImV4cCI6MjA1NzY5Mjk5Nn0.8k2g2dryfGuS7DgbUQmmN4at_gXxNKYCvxs4EFxf0yEy"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@app.route('/upload/files', methods=['POST'])
-def upload_filess():
-    BUCKET_NAME = "images"
-    FOLDER_NAME = request.form.get('FOLDER_NAME')
-    
-    if 'file' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    
-    file = request.files['file']
-    file_ext = os.path.splitext(file.filename)[1]
-    file_name = f"{uuid.uuid4()}{file_ext}"
-    file_path = f"{FOLDER_NAME}/{file_name}"
-    
-    try:
-        response = supabase.storage.from_(BUCKET_NAME).upload(file_path, file.read(), {'content-type': file.content_type})
-        public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{file_path}"
-        return jsonify({"message": "File uploaded successfully", "url": public_url}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+#if __name__ == '__main__':
+   # app.run(host='0.0.0.0', port=5000, debug=True)
     
 
 @app.route("/")
