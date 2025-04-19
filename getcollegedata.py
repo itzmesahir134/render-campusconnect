@@ -1571,6 +1571,24 @@ def createForm(user_id):
     db.collection('Forms').document(form_id).set(form_doc)
     return jsonify({"success": True, "message": "Form created", "form_id": form_id}), 201
 
+@app.route('/create-ass/<user_id>', methods=['GET'])
+def createFAss(user_id):
+    # user_id = request.args.get('user_id')
+    if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+    ass_id = str(uuid.uuid4())
+
+    ass_doc = {
+        'title': "Untitled Form",
+        'desc': "No description...",
+        'fields': [],
+        "user_id": user_id,
+        'ass_id': ass_id
+    }
+
+    db.collection('Assignment').document(ass_id).set(ass_doc)
+    return jsonify({"success": True, "message": "Ass created", "ass_id": form_id}), 201
+
 
 def returnAllFields(form_id):
     form_ref = db.collection("Forms").document(form_id)
