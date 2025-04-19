@@ -1689,6 +1689,8 @@ def update_form_fields(form_id, field_id, field_type):
         update_data["label"] = request.args.get("label")
     if "required" in request.args:
         update_data["required"] = request.args.get("required").lower() == "true"
+    if "file" in request.args:
+        update_data["file"] = request.args.get("file")
     if "options" in request.args:
         new_option = request.args.get("options")
         existing_options = field_doc.to_dict().get("options", [])
