@@ -1583,11 +1583,11 @@ def createFAss(user_id):
         'desc': "No description...",
         'fields': [],
         "user_id": user_id,
-        'ass_id': ass_id
+        'assignment_id': ass_id
     }
 
-    db.collection('Assignment').document(ass_id).set(ass_doc)
-    return jsonify({"success": True, "message": "Ass created", "ass_id": form_id}), 201
+    db.collection('Assignment').document(assignment_id).set(ass_doc)
+    return jsonify({"success": True, "message": "Ass created", "assignment_id": assignemnt_id}), 201
 
 
 def returnAllFields(form_id):
