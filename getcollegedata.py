@@ -328,6 +328,56 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
     else:
         return jsonify({"response": False, "message": "Student not found"}), 404
     
+
+#CHAT AREA
+@app.route("/create-chat/<type>/<member_list>/<member_ids>")
+def create_dm(type, member_list, member_ids):
+    
+    member_list = member_list.split(',')
+    member_ids = member_ids.split(',')
+    if request.args.get('DocID'):
+        docID = request.args.get('DocID')
+    else:
+        docID = False
+    query = (
+    db.collection("Chats")
+        .where("MemberIDs", "array_contains", member_ids[0])
+        .stream()
+    )
+    refsList = [db.collection("Users").document(mem_id) for mem_id in member_ids]
+    
+    # Check if any documents exist
+    if type == "Personal":
+        if any(set(chat_doc.to_dict().get("MemberIDs",[])) == set(member_ids) for chat_doc in query ):
+            return jsonify({"response": False}), 200
+        
+    chatDoc = createFire('Chats',{
+        "type": type,
+        "Members": member_list,
+        "MemberProfiles": [ref.get().to_dict().get('photo_url') for ref in refsList],
+        "MemberUserRef": refsList,
+        "MemberIDs": member_ids,
+        "last_message": "Say Hello!",
+        "last_message_time": datetime.datetime.now(),
+        "important": False,
+    }, docID)
+    if type == "Group":
+        if request.args.get('collegeInfo'):  
+            collegeInfo = request.args.get("collegeInfo")
+        else: collegeInfo = "null"
+        chatDoc.update({
+            "GroupName": request.args.get('GroupName'),
+            "GroupDescription": request.args.get('GroupDescription'),
+            "GroupImage": request.args.get('GroupImage'),
+            "ChatID": chatDoc.id,
+            "collegeInfo": collegeInfo,
+            })
+    elif type == "Personal":
+        chatDoc.update({
+            "ChatID": chatDoc.id
+        })
+        
+    return jsonify({"response": True, "chatID": chatDoc.id}), 200
 @app.route("/change-college-pass/<collegeDoc_id>/<identity_id>/<default_pass>/<new_pass>/<college_email>/<user_type>")
 def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email, user_type):
     if user_type == "Student":
@@ -549,7 +599,8 @@ def create_college(college_email, password, identity_id, college_name, state, us
             "Display": False,
             "LoggedIn": False,
             "DepartmentList": [""],
-            "ClassList": {"DefaultDepartmentName":[""]}
+            "ClassList": {"DefaultDepartmentName":[""]},
+            "Name": request.args.get("Name")
             },request.args.get('id'))
     
     createFire('Colleges',{
@@ -765,6 +816,14 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
     
     return jsonify({"response": True, "data": [doc.to_dict() for doc in db.collection(f"Colleges/{collegeDoc_id}/Departments").stream()]}), 200
 
+@app.route("/get-department-members/<collegeDoc_id>/<department_name>")
+def get_department_members(collegeDoc_id, department_name):
+    return [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream() if department_name in doc.to_dict().get('DepartmentList')] + [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream() if department_name in doc.to_dict().get('DepartmentList')], 200
+
+@app.route("/get-class-members/<collegeDoc_id>/<department_name>/<class_name>")
+def get_class_members(collegeDoc_id, department_name, class_name):
+    return [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream() if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_'))] + [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream() if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_'))], 200
+
 # http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator_id>/<courses>/<format>/<year_or_semester>/<userDoc_id>/<delete_prev>")
 def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, courses, format, year_or_semester, userDoc_id, delete_prev):
@@ -904,57 +963,6 @@ def resetToStudentDefaultPass(collegeDoc_id, department_name, class_name, defaul
         "Password": default_password
         }, identity_id)
     return jsonify({"response": True}), 200
-
-
-#CHAT AREA
-@app.route("/create-chat/<type>/<member_list>/<member_ids>")
-def create_dm(type, member_list, member_ids):
-    
-    member_list = member_list.split(',')
-    member_ids = member_ids.split(',')
-    if request.args.get('DocID'):
-        docID = request.args.get('DocID')
-    else:
-        docID = False
-    query = (
-    db.collection("Chats")
-        .where("MemberIDs", "array_contains", member_ids[0])
-        .stream()
-    )
-    refsList = [db.collection("Users").document(mem_id) for mem_id in member_ids]
-    
-    # Check if any documents exist
-    if type == "Personal":
-        if any(set(chat_doc.to_dict().get("MemberIDs",[])) == set(member_ids) for chat_doc in query ):
-            return jsonify({"response": False}), 200
-        
-    chatDoc = createFire('Chats',{
-        "type": type,
-        "Members": member_list,
-        "MemberProfiles": [ref.get().to_dict().get('photo_url') for ref in refsList],
-        "MemberUserRef": refsList,
-        "MemberIDs": member_ids,
-        "last_message": "Say Hello!",
-        "last_message_time": datetime.datetime.now(),
-        "important": False,
-    }, docID)
-    if type == "Group":
-        if request.args.get('collegeInfo'):  
-            collegeInfo = request.args.get("collegeInfo")
-        else: collegeInfo = "null"
-        chatDoc.update({
-            "GroupName": request.args.get('GroupName'),
-            "GroupDescription": request.args.get('GroupDescription'),
-            "GroupImage": request.args.get('GroupImage'),
-            "ChatID": chatDoc.id,
-            "collegeInfo": collegeInfo,
-            })
-    elif type == "Personal":
-        chatDoc.update({
-            "ChatID": chatDoc.id
-        })
-        
-    return jsonify({"response": True, "chatID": chatDoc.id}), 200
 
 #UPLOAD ARE
 
@@ -1748,10 +1756,10 @@ def add_form_field(form_id, field_type):
     return jsonify({"message": "New field added successfully", "field_id": new_field_id, "fields": updated_fields}), 200
 
 
-@app.route('/create-response/<form_id>/<use_id>/<user_id>/<username>', methods=['GET'])
-def create_or_get_response(form_id, use_id, user_id, username):
-    if not form_id or not user_id or not username:
-        return jsonify({"error": "Missing form_id or user_id or username"}), 400
+@app.route('/create-response/<form_id>/<use_id>/<user_id>', methods=['GET'])
+def create_or_get_response(form_id, use_id, user_id):
+    if not form_id or not user_id:
+        return jsonify({"error": "Missing form_id or user_id"}), 400
 
     responses_ref = db.collection("Responses")
     existing_response = responses_ref.where("form_id", "==", form_id).where("user_id", "==", user_id).limit(1).stream()
@@ -1766,7 +1774,6 @@ def create_or_get_response(form_id, use_id, user_id, username):
         "response_id": response_id,
         "form_id": form_id,
         "user_id": user_id,
-        "username": username
         "submitted_at": firestore.SERVER_TIMESTAMP,
         "use_id": use_id,
         "approval_status": "Pending",
@@ -1774,7 +1781,60 @@ def create_or_get_response(form_id, use_id, user_id, username):
     })
 
     return jsonify({"response_id": response_id, "exists": False})  # New response created
-    
+
+# @app.route('/update-response/<response_id>/<field_id>', methods=['GET'])
+# def update_response(response_id, field_id):
+#     label = request.args.get('label')
+#     answer = request.args.get('answer')
+#     field_type = request.args.get('field_type')  # Get field type from request
+#     approval_status = request.args.get('approval_status')
+
+#     if not response_id or not field_id or not label or answer is None or not field_type:
+#         return jsonify({"error": "Missing required parameters"}), 400
+
+#     # Get form_id from parent document
+#     form_id = response_doc.to_dict().get("form_id")
+#     if not form_id:
+#         return jsonify({"error": "form_id not found in response document"}), 400
+
+#     isRequired = 
+            
+#     # Determine how to store the answer based on field type
+#     update_data = {
+#         "label": label,
+#         "updated_at": firestore.SERVER_TIMESTAMP,
+#         "field_id":field_id,
+#         "form_id": form_id,
+#         "required": 
+#     }
+
+#     if field_type == "checkbox":
+#         update_data["answers"] = answer.split(",,") if ",," in answer else [answer]  # Store as list under 'answers'
+#     else:
+#         update_data["answer"] = answer  # Store as a string under 'answer' for other field types
+
+#     try:
+#         print(f"Updating Response: {response_id}, Field: {field_id}")
+#         print(f"Label: {label}, Field Type: {field_type}, Data: {update_data}")
+
+#         # Reference to Firestore
+#         field_ref = db.collection('Responses').document(response_id).collection('responded_fields').document(field_id)
+
+#         # Check if the document exists
+#         doc = field_ref.get()
+#         print(f"Document Exists: {doc.exists}")
+
+#         # Update Firestore
+#         field_ref.set(update_data, merge=True)
+
+#         print("Firestore Update Successful!")
+
+#         return jsonify({"message": "Response updated"}), 200
+
+#     except Exception as e:
+#         print(f"Firestore Error: {e}")
+#         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/update-response/<response_id>/<field_id>', methods=['GET'])
 def update_response(response_id, field_id):
