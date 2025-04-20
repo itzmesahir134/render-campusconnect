@@ -26,7 +26,7 @@ SENDER_PASSWORD = "ykju twfs tkhw mopa"  # Use App Password for security
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
 
 def generate_otp():
     """Generate a 6-digit OTP."""
