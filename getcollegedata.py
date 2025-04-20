@@ -26,7 +26,7 @@ SENDER_PASSWORD = "ykju twfs tkhw mopa"  # Use App Password for security
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('etc/secrets/ServiceAccountKey.json'))
 
 def generate_otp():
     """Generate a 6-digit OTP."""
@@ -283,6 +283,40 @@ def collegeLogin(college_name, identity_id, college_email, password, userDoc_id,
                     
                     }, collegeDoc_id)
         
+        for dep in user_data.get("DepartmentList", []):
+            # Get department-only chats
+            query = (
+                db.collection("Chats")
+                .where("department_name", "==", dep)
+                .where("class_name", "==", "null")
+                .stream()
+            )
+            for doc in query:
+                doc.reference.update({
+                    "Members": firestore.ArrayUnion([user_data.get('Name')]),
+                    "MemberIDs": firestore.ArrayUnion([userDoc_id]),
+                    "MemberProfiles": firestore.ArrayUnion([user_data.get('photo_url')]),
+                    "MemberUserRef": firestore.ArrayUnion([db.collection('Users').document(userDoc_id)])
+                })
+
+            # Get department-class level chats
+            for clas in user_data.get("ClassList", {}).get(dep.replace(' ', '_'), []):
+                query = (
+                    db.collection("Chats")
+                    .where("department_name", "==", dep)
+                    .where("class_name", "==", clas)
+                    .stream()
+                )
+                for doc in query:
+                    doc.reference.update({
+                        "Members": firestore.ArrayUnion([user_data.get('Name')]),
+                        "MemberIDs": firestore.ArrayUnion([userDoc_id]),
+                        "MemberProfiles": firestore.ArrayUnion([user_data.get('photo_url')]),
+                        "MemberUserRef": firestore.ArrayUnion([db.collection('Users').document(userDoc_id)])
+                    })
+
+            
+            
         if user_data.get('LoggedIn'):
             if user_data.get('Password') == password and user_data.get('CollegeEmail') == college_email:
                 
@@ -818,11 +852,34 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
 
 @app.route("/get-department-members/<collegeDoc_id>/<department_name>")
 def get_department_members(collegeDoc_id, department_name):
-    return [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream() if department_name in doc.to_dict().get('DepartmentList')] + [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream() if department_name in doc.to_dict().get('DepartmentList')], 200
+    memberList = []
+    memberRefList =[]
+    for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream():
+        if department_name in doc.to_dict().get('DepartmentList') and doc.to_dict().get('LoggedIn'):
+            memberList.append(doc.to_dict().get('Name'))
+            print(memberList)
+            memberRefList.append(doc.to_dict().get('UserID'))
+    for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream():
+        if department_name in doc.to_dict().get('DepartmentList') and doc.to_dict().get('LoggedIn'):
+            memberList.append(doc.to_dict().get('Name'))
+            memberRefList.append(doc.to_dict().get('UserID'))
+        
+    return {"memberList": memberList, "memberRefList": memberRefList}, 200
 
 @app.route("/get-class-members/<collegeDoc_id>/<department_name>/<class_name>")
 def get_class_members(collegeDoc_id, department_name, class_name):
-    return [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream() if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_'))] + [doc.to_dict().get('Name') for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream() if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_'))], 200
+    memberList = []
+    memberRefList = []
+    for doc in db.collection(f"Colleges/{collegeDoc_id}/Faculty").stream():
+        if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_')) and doc.to_dict().get('LoggedIn'):
+            memberList.append(doc.to_dict().get('Name'))
+            memberRefList.append(doc.to_dict().get('UserID'))
+    for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream():
+        if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_')) and doc.to_dict().get('LoggedIn'):
+            memberList.append(doc.to_dict().get('Name'))
+            memberRefList.append(doc.to_dict().get('UserID'))
+            
+    return {"memberList": memberList, "memberRefList": memberRefList}, 200
 
 # http://127.0.0.1:5000/add-class/bjqenSCzXVbupX1E3OYs/Mechanical%20Engineering/ME/Diploma%20in%20Engineering/Bhadti%20Rathod/Diploma%20Program/Semester/ZLByMI4dkUa0vBxakiKbxIMCwvD3/False
 @app.route("/add-class/<collegeDoc_id>/<department_name>/<class_name>/<class_coordinator_id>/<courses>/<format>/<year_or_semester>/<userDoc_id>/<delete_prev>")
