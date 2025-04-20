@@ -736,7 +736,7 @@ def add_department(collegeDoc_id, department_name, abbreviation, field_of_study,
     fac_docs = db.collection(f'Colleges/{collegeDoc_id}/Faculty')
     for fac_doc in fac_docs.stream():
         ['Main College Head','College Head','College Admin']
-        if fac_doc.get().to_dict().get("Authority") in ['Main College Head','College Head','College Admin']:
+        if fac_doc.get().to_dict().get("Authority") in ['Main College Head', 'College Head', 'College Admin']:
             update_faculty_departmentlist("Add", collegeDoc_id, department_name, fac_doc.get().to_dict().get("IdentityID",[]))
             
     hod_ref = fac_docs.document(department_head_id)
