@@ -1777,11 +1777,17 @@ def update_response(response_id, field_id):
     if not response_id or not field_id or not label or answer is None or not field_type:
         return jsonify({"error": "Missing required parameters"}), 400
 
+    # Get form_id from parent document
+        form_id = response_doc.to_dict().get("form_id")
+        if not form_id:
+            return jsonify({"error": "form_id not found in response document"}), 400
+            
     # Determine how to store the answer based on field type
     update_data = {
         "label": label,
         "updated_at": firestore.SERVER_TIMESTAMP,
-        "field_id":field_id
+        "field_id":field_id,
+        "form_id": form_id
     }
 
     if field_type == "checkbox":
