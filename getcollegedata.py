@@ -26,7 +26,7 @@ SENDER_PASSWORD = "ykju twfs tkhw mopa"  # Use App Password for security
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate('/etc/secrets/ServiceAccountKey.json'))
+    firebase_admin.initialize_app(credentials.Certificate('etc/secrets/ServiceAccountKey.json'))
 
 def generate_otp():
     """Generate a 6-digit OTP."""
@@ -200,7 +200,9 @@ def update_faculty_departmentlist(type, collegeDoc_id, department_name, faculty_
             f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayUnion([""])
         }
         doc_ref.update(update)
-        user_ref.update(update)
+        try:
+            user_ref.update(update)
+        except: print("User Ref not found")
         return {"Response": "Added"}, 200
     elif type == "Remove":
         update = {
