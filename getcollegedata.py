@@ -1767,55 +1767,118 @@ def create_or_get_response(form_id, use_id, user_id):
 
     return jsonify({"response_id": response_id, "exists": False})  # New response created
 
+# @app.route('/update-response/<response_id>/<field_id>', methods=['GET'])
+# def update_response(response_id, field_id):
+#     label = request.args.get('label')
+#     answer = request.args.get('answer')
+#     field_type = request.args.get('field_type')  # Get field type from request
+#     approval_status = request.args.get('approval_status')
+
+#     if not response_id or not field_id or not label or answer is None or not field_type:
+#         return jsonify({"error": "Missing required parameters"}), 400
+
+#     # Get form_id from parent document
+#     form_id = response_doc.to_dict().get("form_id")
+#     if not form_id:
+#         return jsonify({"error": "form_id not found in response document"}), 400
+
+#     isRequired = 
+            
+#     # Determine how to store the answer based on field type
+#     update_data = {
+#         "label": label,
+#         "updated_at": firestore.SERVER_TIMESTAMP,
+#         "field_id":field_id,
+#         "form_id": form_id,
+#         "required": 
+#     }
+
+#     if field_type == "checkbox":
+#         update_data["answers"] = answer.split(",,") if ",," in answer else [answer]  # Store as list under 'answers'
+#     else:
+#         update_data["answer"] = answer  # Store as a string under 'answer' for other field types
+
+#     try:
+#         print(f"Updating Response: {response_id}, Field: {field_id}")
+#         print(f"Label: {label}, Field Type: {field_type}, Data: {update_data}")
+
+#         # Reference to Firestore
+#         field_ref = db.collection('Responses').document(response_id).collection('responded_fields').document(field_id)
+
+#         # Check if the document exists
+#         doc = field_ref.get()
+#         print(f"Document Exists: {doc.exists}")
+
+#         # Update Firestore
+#         field_ref.set(update_data, merge=True)
+
+#         print("Firestore Update Successful!")
+
+#         return jsonify({"message": "Response updated"}), 200
+
+#     except Exception as e:
+#         print(f"Firestore Error: {e}")
+#         return jsonify({"error": str(e)}), 500
+
+
 @app.route('/update-response/<response_id>/<field_id>', methods=['GET'])
 def update_response(response_id, field_id):
     label = request.args.get('label')
     answer = request.args.get('answer')
-    field_type = request.args.get('field_type')  # Get field type from request
+    field_type = request.args.get('field_type')
     approval_status = request.args.get('approval_status')
 
     if not response_id or not field_id or not label or answer is None or not field_type:
         return jsonify({"error": "Missing required parameters"}), 400
 
-    # Get form_id from parent document
+    try:
+        print(f"Updating Response: {response_id}, Field: {field_id}")
+
+        #Get parent Responses document for form_id
+        response_doc_ref = db.collection('Responses').document(response_id)
+        response_doc = response_doc_ref.get()
+
+        if not response_doc.exists:
+            return jsonify({"error": "Response document not found"}), 404
+
         form_id = response_doc.to_dict().get("form_id")
         if not form_id:
             return jsonify({"error": "form_id not found in response document"}), 400
-            
-    # Determine how to store the answer based on field type
-    update_data = {
-        "label": label,
-        "updated_at": firestore.SERVER_TIMESTAMP,
-        "field_id":field_id,
-        "form_id": form_id
-    }
 
-    if field_type == "checkbox":
-        update_data["answers"] = answer.split(",,") if ",," in answer else [answer]  # Store as list under 'answers'
-    else:
-        update_data["answer"] = answer  # Store as a string under 'answer' for other field types
+        # Get required field from Fields subcollection
+        field_doc_ref = db.collection('Forms').document(form_id).collection('fields').document(field_id)
+        field_doc = field_doc_ref.get()
 
-    try:
-        print(f"Updating Response: {response_id}, Field: {field_id}")
-        print(f"Label: {label}, Field Type: {field_type}, Data: {update_data}")
+        if not field_doc.exists:
+            return jsonify({"error": "Field document not found in Forms collection"}), 404
 
-        # Reference to Firestore
-        field_ref = db.collection('Responses').document(response_id).collection('responded_fields').document(field_id)
+        required = field_doc.to_dict().get("required", False)  # default to False if not set
 
-        # Check if the document exists
-        doc = field_ref.get()
-        print(f"Document Exists: {doc.exists}")
+        # Step 3: Build update data
+        update_data = {
+            "label": label,
+            "updated_at": firestore.SERVER_TIMESTAMP,
+            "field_id": field_id,
+            "form_id": form_id,
+            "required": required
+        }
 
-        # Update Firestore
+        if field_type == "checkbox":
+            update_data["answers"] = answer.split(",,") if ",," in answer else [answer]
+        else:
+            update_data["answer"] = answer
+
+        # Step 4: Update responded_fields document
+        field_ref = response_doc_ref.collection('responded_fields').document(field_id)
         field_ref.set(update_data, merge=True)
 
         print("Firestore Update Successful!")
-
         return jsonify({"message": "Response updated"}), 200
 
     except Exception as e:
         print(f"Firestore Error: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/delete-response/<response_id>', methods=['GET'])
 def delete_response(response_id):
