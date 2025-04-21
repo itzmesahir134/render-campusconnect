@@ -237,7 +237,9 @@ def update_faculty_classlist(type, collegeDoc_id, department_name, class_name, f
             f"ClassList.{department_name.replace(' ', '_')}": firestore.ArrayUnion([class_name])
         }
         doc_ref.update(update)
-        user_ref.update(update)
+        try:
+            user_ref.update(update)
+        except: print("User Ref not found")
         return {"Response": "Added"}, 200
     elif type == "Remove":
         update = {
@@ -430,6 +432,7 @@ def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email
                 "LoggedIn": True,
                 "Password": new_pass
                 }, merge = True)
+    return jsonify({"response": True}), 200
 
 # http://127.0.0.1:5000/college-login-search/Maharashtra/colleges
 @app.route("/college-login-search/<state>/<college_name>")
@@ -908,8 +911,8 @@ def add_class(collegeDoc_id, department_name, class_name, class_coordinator_id, 
     
     fac_docs = db.collection(f'Colleges/{collegeDoc_id}/Faculty')
     for fac_doc in fac_docs.stream():
-        if fac_doc.get().to_dict().get("Authority") in ['Main College Head','College Head','College Admin']:
-            update_faculty_classlist("Add", collegeDoc_id, department_name, class_name, fac_doc.get().to_dict().get("IdentityID",[]))
+        if fac_doc.to_dict().get("Authority") in ['Main College Head','College Head','College Admin']:
+            update_faculty_classlist("Add", collegeDoc_id, department_name, class_name, fac_doc.to_dict().get("IdentityID",[]))
             
     cc_ref = fac_docs.document(class_coordinator_id)
     update_faculty_departmentlist("Add", collegeDoc_id, department_name, class_coordinator_id)
