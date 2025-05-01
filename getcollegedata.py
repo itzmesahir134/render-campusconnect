@@ -887,9 +887,22 @@ def get_class_members(collegeDoc_id, department_name, class_name):
             memberList.append(doc.to_dict().get('Name'))
             memberRefList.append(doc.to_dict().get('UserID'))
     for doc in db.collection(f"Colleges/{collegeDoc_id}/Students").stream():
-        if department_name in doc.to_dict().get('DepartmentList') and class_name in doc.to_dict().get('ClassList').get(department_name.replace(' ','_')) and doc.to_dict().get('LoggedIn'):
-            memberList.append(doc.to_dict().get('Name'))
-            memberRefList.append(doc.to_dict().get('UserID'))
+        data = doc.to_dict()
+        print(data.get('IdentityID'))
+
+        department_list = data.get('DepartmentList') or []
+        class_list = data.get('ClassList') or {}
+        logged_in = data.get('LoggedIn', False)
+
+        # Only continue if the fields exist and conditions are met
+        if (
+            department_name in department_list and
+            department_name.replace(' ', '_') in class_list and
+            class_name in class_list[department_name.replace(' ', '_')] and
+            logged_in
+        ):
+            memberList.append(data.get('Name'))
+            memberRefList.append(data.get('UserID'))
             
     return {"memberList": memberList, "memberRefList": memberRefList}, 200
 
