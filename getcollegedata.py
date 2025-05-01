@@ -401,12 +401,20 @@ def create_dm(type, member_list, member_ids):
         if request.args.get('collegeInfo'):  
             collegeInfo = request.args.get("collegeInfo")
         else: collegeInfo = "null"
+        if request.args.get('department_name'):  
+            department_name = request.args.get("department_name")
+        else: department_name = "null"
+        if request.args.get('class_name'):  
+            class_name = request.args.get("class_name")
+        else: class_name = "null"
         chatDoc.update({
             "GroupName": request.args.get('GroupName'),
             "GroupDescription": request.args.get('GroupDescription'),
             "GroupImage": request.args.get('GroupImage'),
             "ChatID": chatDoc.id,
             "collegeInfo": collegeInfo,
+            "department_name": department_name,
+            "class_name": class_name,
             })
     elif type == "Personal":
         chatDoc.update({
@@ -414,6 +422,7 @@ def create_dm(type, member_list, member_ids):
         })
         
     return jsonify({"response": True, "chatID": chatDoc.id}), 200
+    
 @app.route("/change-college-pass/<collegeDoc_id>/<identity_id>/<default_pass>/<new_pass>/<college_email>/<user_type>")
 def changePass(collegeDoc_id, identity_id, default_pass, new_pass, college_email, user_type):
     if user_type == "Student":
